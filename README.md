@@ -234,8 +234,3 @@ The vmapped rows count total steps across all environments.
 | DQN | 1 | 53,300 | 0.41x |
 | Random | 30 | 1,645,000 | - |
 | DQN | 30 | 178,000 | 0.11x |
-
-## Related work
-
-This project mirrors the structure of [`pinball-jax`](https://github.com/panahiparham/pinball-jax),
-a JAX implementation of a different control environment by the same author.
