@@ -224,23 +224,19 @@ def main():
 
     agent_results = {}
 
+    agent_steps = 50_000
     for name in ["Random", "DQN"]:
-        agent_results[name] = {}
-        for n_seeds in [1, 30]:
-            agent_steps = 50_000
-            print(f"Benchmarking {name} agent ({n_seeds} seed{'s' if n_seeds > 1 else ''}) with {agent_steps:,} steps...")
-            total_steps, elapsed = benchmark_agent(agent_steps, n_seeds, name)
-            throughput = total_steps / elapsed
-            print(f"  {name} {n_seeds}x: {format_throughput(total_steps, elapsed)} steps/sec")
-            agent_results[name][n_seeds] = (total_steps, elapsed, throughput)
+        print(f"Benchmarking {name} agent with {agent_steps:,} steps...")
+        total_steps, elapsed = benchmark_agent(agent_steps, 1, name)
+        print(f"  {name}: {format_throughput(total_steps, elapsed)} steps/sec")
+        agent_results[name] = (total_steps, elapsed)
 
     print()
-    print("| Agent | Seeds | Steps/sec |")
-    print("|---|---|---|")
-    for n_seeds in [1, 30]:
-        for name in ["Random", "DQN"]:
-            total_steps, elapsed, _ = agent_results[name][n_seeds]
-            print(f"| {name} | {n_seeds} | {format_throughput(total_steps, elapsed)} |")
+    print("| Agent | Steps/sec |")
+    print("|---|---|")
+    for name in ["Random", "DQN"]:
+        total_steps, elapsed = agent_results[name]
+        print(f"| {name} | {format_throughput(total_steps, elapsed)} |")
 
     print()
     print("=" * 80)

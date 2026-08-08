@@ -229,13 +229,11 @@ The vmapped rows count total steps across all environments.
 
 **Agent throughput on catch-jax**
 
-Each row is a `jax.vmap` over that many independent agent and environment streams,
-each with its own replay buffer, rather than one agent acting across parallel
-environments.
+Measured at one seed, so each row is a single agent stepping its own environment
+with its own replay buffer. Multi-seed runs scale by vmapping over independent
+streams like these rather than by batching environments under one agent.
 
-| Agent | Seeds | Steps/sec |
-| --- | --- | --- |
-| Random | 1 | 131,000 |
-| DQN | 1 | 53,300 |
-| Random | 30 | 1,645,000 |
-| DQN | 30 | 178,000 |
+| Agent | Steps/sec |
+| --- | --- |
+| Random | 131,000 |
+| DQN | 53,300 |
