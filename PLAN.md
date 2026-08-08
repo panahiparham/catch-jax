@@ -123,17 +123,25 @@ catch-jax/
 ├── .gitignore                      # copied from pinball-jax
 ├── benchmark_dqn.py
 ├── benchmark_dqn.png / .pdf        # generated
+├── benchmark_dancing_catch.py
+├── benchmark_dancing_catch.png / .pdf   # generated
 ├── .github/workflows/test.yml      # copied from pinball-jax
 ├── src/catch_jax/
-│   ├── __init__.py                 # exports Catch, CatchParams, CatchState
+│   ├── __init__.py                 # exports both environments
+│   ├── constants.py                # default settings shared by both environments
 │   ├── catch.py                    # the environment
+│   ├── dancing_catch.py            # the non-stationary variant (Step 7)
 │   └── gym_env.py                  # copied verbatim from pinball-jax
 └── tests/
     ├── conftest.py
     ├── _reference_catch.py         # vendored numpy oracle
+    ├── _reference_dancing_catch.py # vendored numpy oracle
     ├── test_catch_protocol.py
     ├── test_catch_dynamics.py
-    └── test_catch_parity.py
+    ├── test_catch_parity.py
+    ├── test_dancing_catch_protocol.py
+    ├── test_dancing_catch_dynamics.py
+    └── test_dancing_catch_parity.py
 ```
 
 No `configs/` directory (catch has no config files), so `pyproject.toml` also
@@ -435,6 +443,107 @@ Mirrors pinball-jax's structure:
   Step 5, and the run command.
 - **Differences from csuite:** the §3 issues and the §4 divergences, so anyone
   comparing against csuite output knows exactly what to expect.
+
+---
+
+## Step 7 - Dancing Catch: a non-stationary variant
+
+Dancing Catch is a variant of Catch where the observation is flattened to shape
+`(rows * columns,)` and gathered through a permutation `shuffle_idx` that drifts
+over time. The dynamics, reward, and spawn are identical to Catch.
+
+### State and params additions
+
+`DancingCatchState` extends `CatchState` with:
+
+```python
+shuffle_idx: jax.Array     # int32[rows*columns], the observation permutation
+time_since_swap: jax.Array # int32 scalar, steps since the last swap
+```
+
+`DancingCatchParams` adds:
+
+```python
+swap_every: int = DEFAULT_SWAP_EVERY  # Interval between swaps (default 10,000)
+```
+
+All other fields and params are inherited from Catch.
+
+### Design decisions
+
+- **Observation is 1-D and permuted.** The flattened board is gathered via
+  `board.reshape(-1)[shuffle_idx]`, drifting the input-to-meaning mapping
+  incrementally. This is the core of the non-stationarity test.
+- **`swap_every` lives in `params`.** This allows it to be swept under `vmap`
+  without retracing the environment logic, enabling flexible experimental
+  configurations including learning curves as `swap_every` varies.
+- **Swap condition is `time_since_swap >= swap_every`.** This is equivalent to
+  csuite's modulo check (`time_since_swap % swap_every == 0`) given that csuite
+  resets the counter on each swap. Our formulation stays well-defined when
+  `swap_every` is traced or non-positive, avoiding bugs in JAX tracing.
+- **Both swap indices are drawn unconditionally.** JAX cannot conditionally draw
+  random numbers; both indices are sampled every step and used only when
+  `do_swap` is true.
+- **Shared defaults live in `src/catch_jax/constants.py`.** `DEFAULT_ROWS`,
+  `DEFAULT_COLUMNS`, `NUM_ACTIONS`, `DEFAULT_SPAWN_PROBABILITY`, and
+  `DEFAULT_MAX_STEPS_IN_EPISODE` are identical for both environments, so they
+  have one source of truth. `DEFAULT_SWAP_EVERY` stays in `dancing_catch.py`
+  because only that environment uses it.
+
+### Fidelity notes
+
+Three issues found in csuite's `dancing_catch.py`:
+
+**(1) Docstring contradicts the code.** The class docstring claims swaps occur
+with low probability at each timestep, but the code swaps deterministically
+every `swap_every` steps. We implement the code.
+
+**(2) `_get_observation` and `render` ignore configured board size.** They
+allocate the board from module constants `_ROWS` and `_COLUMNS`, so non-default
+sizes break. We use the configured size (same fix as Catch).
+
+**(3) Swap indices may coincide.** csuite draws them independently, so they can
+be equal, making the transposition a no-op. We reproduce this faithfully.
+
+### Parity testing
+
+`tests/_reference_dancing_catch.py` vendors csuite's `dancing_catch.py` as a
+test-only oracle, applying the same fixes as `_reference_catch.py` (standalone
+imports, board size fix). Because the oracle retains csuite's list-of-balls
+state representation, parity testing validates our fixed-shape array encoding
+against an independent reference.
+
+Parity runs in two modes:
+
+**(a) Deterministic parity - `spawn_probability = 0.0`.** Spawns and swaps are
+both disabled, so both environments are fully deterministic. Assert exact
+agreement on the permuted observation and reward over multiple seeds and board
+sizes.
+
+**(b) Event-replay parity - `spawn_probability ∈ {0.1, 0.5, 1.0}`.** Roll the
+JAX env and harvest spawn and swap events directly from the state. Replay them
+through the oracle and assert exact observation, reward, `shuffle_idx`, and
+`render` agreement. This validates the entire transition function while
+accommodating the different RNG streams.
+
+### Benchmark configuration and results
+
+Setup: 500,000 timesteps, 30 seeds, default 10x5 board, `spawn_probability=0.1`,
+`swap_every=10_000` (50 swaps total). Every hyperparameter is identical to the
+Catch benchmark for direct comparison. Figure files: `benchmark_dancing_catch.png`
+and `benchmark_dancing_catch.pdf`. Run command: `uv run --group benchmark python benchmark_dancing_catch.py`.
+
+Final metrics (mean +- std across 30 seeds):
+
+- **DQN:** Reward EMA 0.034 +- 0.036, Catch-rate EMA 0.648 +- 0.147
+- **Random:** Reward EMA -0.059 +- 0.025, Catch-rate EMA 0.196 +- 0.028
+
+Key observation: DQN climbs to a peak catch-rate EMA of 0.883 near step 20,000,
+then declines to a stable band of 0.65-0.72 by the end. The curve shows a
+sawtooth pattern: performance dips after each swap and partially recovers before
+the next one. By contrast, DQN on stationary Catch reaches a catch-rate EMA of
+about 0.903 by 50,000 steps and holds it. The random baseline is flat at a
+catch rate of ~0.2, unaffected by permutations.
 
 ---
 
