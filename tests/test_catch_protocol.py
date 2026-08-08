@@ -66,19 +66,12 @@ class TestConstructor:
         assert env.columns == 4
 
     def test_catch_rows_too_small_raises(self) -> None:
-        """Catch(rows=1) must raise ValueError.
-
-        With one row, the spawn row and paddle row coincide, making the state
-        undefined. Minimum is 2: one for the paddle, one above it for balls.
-        """
+        """Catch(rows=1) raises ValueError: the spawn and paddle rows would coincide."""
         with pytest.raises(ValueError):
             Catch(rows=1)
 
     def test_catch_columns_zero_raises(self) -> None:
-        """Catch(columns=0) must raise ValueError.
-
-        The board must have at least one column to place the paddle and balls.
-        """
+        """Catch(columns=0) raises ValueError."""
         with pytest.raises(ValueError):
             Catch(columns=0)
 
@@ -126,20 +119,13 @@ class TestReset:
         assert state.paddle_x == 3  # 7 // 2
 
     def test_reset_exactly_one_ball(self, key: jax.Array) -> None:
-        """reset() must place exactly one ball.
-
-        The ball_mask must have exactly one True entry across all rows.
-        """
+        """reset() places exactly one ball (one True entry in ball_mask)."""
         env = Catch()
         _, state = env.reset(key)
         assert jnp.sum(state.ball_mask) == 1
 
     def test_reset_ball_at_row_zero(self, key: jax.Array) -> None:
-        """reset() ball must be placed at row 0.
-
-        The single ball appears at the top of the board (row 0) in a uniform
-        random column, ready to fall down on the first step.
-        """
+        """reset() places the ball at row 0; all other rows are empty."""
         env = Catch()
         _, state = env.reset(key)
         assert bool(state.ball_mask[0])
@@ -210,12 +196,7 @@ class TestTermination:
     """Tests for episode termination signals."""
 
     def test_never_terminates_long_rollout(self, key: jax.Array) -> None:
-        """Catch is a continuing environment: terminated must always be False.
-
-        Even after many steps (200), a single rollout must never signal
-        termination. Only truncation (due to max_steps_in_episode) can stop
-        an episode.
-        """
+        """Catch is continuing: terminated stays False over a 200-step rollout."""
         env = Catch()
         obs, state = env.reset(key)
 
@@ -226,12 +207,7 @@ class TestTermination:
             )
 
     def test_truncates_at_max_steps_in_episode(self, key: jax.Array) -> None:
-        """step() must truncate (only) when timestep >= max_steps_in_episode.
-
-        This mirrors the test_pinball_protocol.py style: step N-1 times and
-        verify truncated is False each time, then step once more and verify
-        truncated is True at exactly timestep == N.
-        """
+        """step() truncates exactly when timestep >= max_steps_in_episode (mirrors pinball-jax's test style)."""
         env = Catch()
         max_steps = 3
         obs, state = env.reset(key)

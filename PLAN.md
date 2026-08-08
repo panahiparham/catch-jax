@@ -6,7 +6,7 @@ A JAX reimplementation of the **continuing Catch** environment from
 organized to mirror the [`pinball-jax`](../pinball-jax) project.
 
 Goal: `reset` and `step` are pure functions, fully `jit`- and `vmap`-able, with
-fixed-shape state — behaviourally faithful to csuite's Catch, and verified
+fixed-shape state - behaviourally faithful to csuite's Catch, and verified
 against a vendored numpy oracle.
 
 ---
@@ -38,7 +38,7 @@ A breakout-like paddle catches falling balls on a `rows × columns` grid
 ### The key invariant: at most one ball per row
 
 All balls descend in lockstep, and at most one ball spawns per timestep, so two
-balls can only share a row if two spawned on the same step — which never
+balls can only share a row if two spawned on the same step - which never
 happens. Post-`reset` and post-`step`, **each row holds at most one ball**, and
 row `rows - 1` is always empty (any ball arriving there is resolved and removed
 in the same step, so balls occupy only rows `0 … rows - 2`).
@@ -73,7 +73,7 @@ never mistaken for porting bugs.
 
 **(a) The docstring contradicts the code.** The class docstring claims *"A new
 ball will always spawn when a ball falls to the bottom of the board,"* but no
-such code path exists — the only spawn is the `spawn_probability` draw, which is
+such code path exists - the only spawn is the `spawn_probability` draw, which is
 independent of whether a ball was just resolved. The board can therefore sit
 empty for many consecutive steps. **We implement the code**, so parity testing
 is meaningful and results stay comparable to csuite runs.
@@ -87,7 +87,7 @@ carries the one-line fix so it can be tested at non-default sizes.
 
 **(c) `rows == 1` is silently broken.** With one row, the spawn row and the
 paddle row coincide; a ball moves to row 1 (off-board) before the paddle-row
-check can ever fire, so it is never resolved and never removed — and rendering
+check can ever fire, so it is never resolved and never removed - and rendering
 it would index out of bounds. **catch-jax validates `rows >= 2` and
 `columns >= 1`** in the constructor with an explicit error.
 
@@ -106,7 +106,7 @@ it would index out of bounds. **catch-jax validates `rows >= 2` and
 | Observation `dtype=int` | `float32` | Matches `pinball-jax`, which casts observations for network consumption |
 | No episode cap | `terminated` always `False`; `truncated` when `timestep >= max_steps_in_episode` | The protocol requires both flags; catch is continuing, so only truncation can fire |
 
-The RNG stream cannot be aligned with numpy's — csuite draws the spawn column
+The RNG stream cannot be aligned with numpy's - csuite draws the spawn column
 *only* when the Bernoulli draw succeeds, whereas JAX splits and draws both
 unconditionally. This has no behavioural consequence, but it dictates the
 parity-testing strategy in Step 4.
@@ -141,7 +141,7 @@ drops pinball's `artifacts = ["*.cfg"]` line.
 
 ---
 
-## Step 1 — Scaffold the repository
+## Step 1 - Scaffold the repository
 
 - `git init` in `/Users/parhammohammadpanahi/dev/catch-jax`. **No remote is
   added and nothing is pushed** without explicit approval.
@@ -162,7 +162,7 @@ drops pinball's `artifacts = ["*.cfg"]` line.
 
 ---
 
-## Step 2 — The environment (`src/catch_jax/catch.py`)
+## Step 2 - The environment (`src/catch_jax/catch.py`)
 
 Module constants: `DEFAULT_ROWS = 10`, `DEFAULT_COLUMNS = 5`, `NUM_ACTIONS = 3`,
 `DEFAULT_SPAWN_PROBABILITY = 0.1`, `DEFAULT_MAX_STEPS_IN_EPISODE`.
@@ -174,8 +174,8 @@ class CatchParams(NamedTuple):
 
 class CatchState(NamedTuple):
     paddle_x:  jax.Array   # int32 scalar
-    ball_cols: jax.Array   # int32[rows]  — column of the ball in each row
-    ball_mask: jax.Array   # bool[rows]   — which rows hold a ball
+    ball_cols: jax.Array   # int32[rows]  - column of the ball in each row
+    ball_mask: jax.Array   # bool[rows]   - which rows hold a ball
     timestep:  jax.Array   # int32 scalar
 ```
 
@@ -221,12 +221,12 @@ cols = cols.at[0].set(jnp.where(spawn, new_col, 0))
 mask = mask.at[0].set(spawn)
 ```
 
-Then `timestep + 1`, `terminated = False` (always — continuing), `truncated =
+Then `timestep + 1`, `terminated = False` (always - continuing), `truncated =
 timestep >= params.max_steps_in_episode`, `info = {}`.
 
 ### Observation
 
-One-hot construction, no scatter — an absent ball's placeholder column can
+One-hot construction, no scatter - an absent ball's placeholder column can
 never erase the paddle cell:
 
 ```python
@@ -238,7 +238,7 @@ board  = jnp.maximum(balls, paddle)
 ### `render(state) -> uint8[rows, columns, 3]`
 
 Matches csuite's `common.binary_board_to_rgb` exactly: `board.astype(uint8) *
-255`, expanded and tiled to 3 channels — 0 → black, 1 → white. Kept outside the
+255`, expanded and tiled to 3 channels - 0 → black, 1 → white. Kept outside the
 `GymEnv` protocol as a convenience method (pinball-jax has no `render`, so this
 is a deliberate addition).
 
@@ -249,7 +249,7 @@ board, and `jax.jit`/`jax.vmap` over `step` trace without error.
 
 ---
 
-## Step 3 — Behavioural tests
+## Step 3 - Behavioural tests
 
 ### `tests/test_catch_protocol.py`
 
@@ -271,7 +271,7 @@ board, and `jax.jit`/`jax.vmap` over `step` trace without error.
   walls under sustained pressure.
 - With `spawn_probability=0`, balls fall exactly one row per step and no new
   ball ever appears; the board empties after the initial ball resolves.
-- Reward is `+1` on a catch, `-1` on a miss, `0` on every other step — driven by
+- Reward is `+1` on a catch, `-1` on a miss, `0` on every other step - driven by
   hand-constructed states for both outcomes.
 - A resolved ball is removed the same step and never drawn on the paddle row.
 - **Invariant test:** over long rollouts at `spawn_probability = 0.1` and `1.0`,
@@ -281,7 +281,7 @@ board, and `jax.jit`/`jax.vmap` over `step` trace without error.
 - **Statistical RNG tests:** over ~100k steps, the empirical spawn rate matches
   `spawn_probability` and spawned columns are uniform, both within a stated
   tolerance and with fixed seeds so the tests are deterministic.
-- Non-default sizes (e.g. 6×3, 2×2, 20×7) behave correctly — the case csuite's
+- Non-default sizes (e.g. 6×3, 2×2, 20×7) behave correctly - the case csuite's
   bug (b) breaks.
 - jit/vmap smoke: `jit(step)`; `vmap` over 8 reset keys; `vmap` over
   `spawn_probability` inside `CatchParams` (validating the params split);
@@ -290,13 +290,13 @@ board, and `jax.jit`/`jax.vmap` over `step` trace without error.
 ### `tests/conftest.py`
 
 Minimal: shared fixtures and constants. Notably it does **not** enable
-`jax_enable_x64` — pinball-jax needs float64 for floating-point physics parity,
+`jax_enable_x64` - pinball-jax needs float64 for floating-point physics parity,
 whereas catch's dynamics are integer and exact. The reason is recorded in the
 docstring so the omission reads as intentional.
 
 ---
 
-## Step 4 — Parity against a vendored numpy oracle
+## Step 4 - Parity against a vendored numpy oracle
 
 ### `tests/_reference_catch.py`
 
@@ -308,7 +308,7 @@ retained). Modifications, each commented:
 1. Drop the `csuite.environments.base` / `common` / `dm_env.specs` imports and
    the base class, so the file stands alone with only numpy.
 2. Fix bug (b): allocate the board from `self._params.rows/columns`.
-3. Add an injectable spawn source — an optional list of `(spawn: bool, column:
+3. Add an injectable spawn source - an optional list of `(spawn: bool, column:
    int)` events consumed one per step in place of the two rng draws. The rng
    path is retained for standalone use.
 
@@ -318,13 +318,13 @@ Dynamics are otherwise untouched.
 
 Because the two RNG streams cannot be aligned, parity runs in two modes:
 
-**(a) Deterministic parity — `spawn_probability = 0.0`.** Both environments are
+**(a) Deterministic parity - `spawn_probability = 0.0`.** Both environments are
 fully deterministic given the initial ball column; seed the reference with the
 column that JAX's `reset` drew. Roll ≥ 300 random actions and assert
 **exact** agreement on the board and the reward at every step, across several
 board sizes and seeds.
 
-**(b) Event-replay parity — `p ∈ {0.1, 0.5, 1.0}`.** Roll the JAX env, reading
+**(b) Event-replay parity - `p ∈ {0.1, 0.5, 1.0}`.** Roll the JAX env, reading
 each step's spawn event directly off `state.ball_mask[0]` / `state.ball_cols[0]`
 (unambiguous: post-step, row 0 is either empty or holds exactly the newly
 spawned ball). Replay that same event sequence through the reference and assert
@@ -339,7 +339,7 @@ byte-for-byte.
 
 ---
 
-## Step 5 — `benchmark_dqn.py`
+## Step 5 - `benchmark_dqn.py`
 
 Mirrors pinball-jax's benchmark: one self-contained file, no experiment harness,
 DQN vs. a uniform-random baseline, each agent a single `jax.vmap` over 30 seeds.
@@ -359,12 +359,12 @@ Hyperparameters from
 | Epsilon | 0.01, constant | `epsilon` |
 | Optimizer | Adam, lr 0.01, β₁ 0.9, β₂ 0.999, ε 1e-8 | `optimizer` |
 | Network | 2 × 32 ReLU MLP | `representation: TwoLayerRelu, hidden 32` |
-| Discount | 0.9 | not in JSON — confirmed choice |
-| Seeds | 30 | not in JSON — confirmed choice |
+| Discount | 0.9 | not in JSON - confirmed choice |
+| Seeds | 30 | not in JSON - confirmed choice |
 
 `regularization_type: "None"` / `regularization: 0.0` are inapplicable and
 skipped. The observation is the 10×5 board flattened to 50 inputs → 3 outputs.
-Since `terminated` is always `False`, every target bootstraps — no terminal
+Since `terminated` is always `False`, every target bootstraps - no terminal
 masking. `buffer_size` (100k) exceeds `total_steps` (50k), so the buffer never
 evicts.
 
@@ -381,8 +381,8 @@ Two notes on interpretation, both recorded in the file's docstring:
 
 Both are exponential moving averages with β = 0.99, tracked inside the scan:
 
-1. **Reward EMA** — updated every step: `ema = 0.99 * ema + 0.01 * reward`.
-2. **Catch-rate EMA** — *event-gated*: updated only on steps where a ball was
+1. **Reward EMA** - updated every step: `ema = 0.99 * ema + 0.01 * reward`.
+2. **Catch-rate EMA** - *event-gated*: updated only on steps where a ball was
    resolved (`reward != 0`), with `1` for a catch and `0` for a miss; unchanged
    on steps where `reward == 0`.
 
@@ -399,7 +399,7 @@ readable.
 
 ### Figure
 
-Two panels sharing the x-axis — reward EMA on top, catch-rate EMA below — each
+Two panels sharing the x-axis - reward EMA on top, catch-rate EMA below - each
 showing DQN and random with the mean across 30 seeds and 95% bootstrap
 confidence bands. Writes `benchmark_dqn.png` and `benchmark_dqn.pdf`.
 
@@ -409,13 +409,13 @@ Run with `uv run --group benchmark python benchmark_dqn.py`.
 verified when the benchmark actually runs, not asserted in advance): the random
 baseline should sit near a catch rate of ~0.2 (uniform ball column over 5
 columns) and a reward EMA of ~-0.06 (≈ `0.1 × (0.2 - 0.8)`). Near-perfect play
-is reachable — the paddle needs at most 4 moves and has 9 rows of fall time — so
+is reachable - the paddle needs at most 4 moves and has 9 rows of fall time - so
 DQN should climb toward a catch rate near 1.0 and a reward EMA near +0.1
 (= `spawn_probability`, the resolution rate).
 
 ---
 
-## Step 6 — `README.md`
+## Step 6 - `README.md`
 
 Mirrors pinball-jax's structure:
 
@@ -424,7 +424,7 @@ Mirrors pinball-jax's structure:
   and fully jit/vmap-able.
 - **References:** the csuite repository, plus the original Catch citation.
   *Bibliographic details to be verified against the actual sources before
-  committing — no citation gets written from memory.*
+  committing - no citation gets written from memory.*
 - **Installation:** `uv add git+https://github.com/<user>/catch-jax` (URL to be
   confirmed).
 - **Usage:** a runnable snippet covering `Catch(rows, columns)`,
@@ -446,7 +446,7 @@ Small calls made without asking; each is a one-line change if you disagree.
    truncation by default. Catch is continuing and the benchmark config specifies
    `episode_cutoff: -1`, so a small default like pinball's 1000 would silently
    impose an episode boundary the environment does not actually have.
-2. **`terminated` is a constant `False` array** rather than being omitted —
+2. **`terminated` is a constant `False` array** rather than being omitted -
    the `GymEnv` protocol requires the field.
 3. **Reward dtype is `float32`** and observations are `float32`, matching
    pinball-jax, even though both are integer-valued in csuite.
@@ -454,5 +454,5 @@ Small calls made without asking; each is a one-line change if you disagree.
 ## Out of scope
 
 - bsuite's *episodic* Catch variant (different dynamics and reward structure).
-- `example.py` — folded into the README usage section, per your call.
+- `example.py` - folded into the README usage section, per your call.
 - Any `git remote` / push / release. Local commits only unless you say otherwise.

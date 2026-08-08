@@ -41,12 +41,8 @@ DETERMINISTIC_STEPS = 300
 @pytest.mark.parametrize("rows,columns", DETERMINISTIC_BOARD_SIZES)
 @pytest.mark.parametrize("seed", DETERMINISTIC_SEEDS)
 def test_deterministic_parity(rows: int, columns: int, seed: int) -> None:
-    """JAX and reference agree with spawn_probability=0.0 over 300+ random actions.
-
-    Both environments are fully deterministic given the initial ball column.
-    We extract that column from JAX's reset, seed the reference with it, then
-    roll both environments through the same action sequence and assert exact
-    agreement on board and reward at every step.
+    """JAX and reference agree exactly over 300+ random actions with spawn_probability=0.0
+    (see module docstring for the parity strategy).
     """
     # Create and reset the JAX environment.
     jax_env = Catch(rows=rows, columns=columns)
@@ -121,16 +117,9 @@ EVENT_REPLAY_STEPS = 500
 @pytest.mark.parametrize("spawn_probability", EVENT_REPLAY_SPAWN_PROBS)
 @pytest.mark.parametrize("seed", EVENT_REPLAY_SEEDS)
 def test_event_replay_parity(rows: int, columns: int, spawn_probability: float, seed: int) -> None:
-    """JAX and reference agree when spawn events are replayed.
-
-    We roll the JAX environment normally, extracting spawn events directly from
-    the state post-step (ball_mask[0] and ball_cols[0]). Row 0 is always freshly
-    written by the step function (after descent clears it), so it unambiguously
-    indicates whether a new ball spawned this step and which column.
-
-    We then replay those exact events through the reference, which becomes fully
-    deterministic. This validates the entire transition function while letting
-    the RNGs differ.
+    """JAX and reference agree when spawn events are replayed (see module docstring for the
+    parity strategy). Row 0 is always freshly written by step() after descent clears it, so
+    ball_mask[0]/ball_cols[0] unambiguously indicate the spawn event to replay.
     """
     # Create and reset the JAX environment.
     jax_env = Catch(rows=rows, columns=columns)

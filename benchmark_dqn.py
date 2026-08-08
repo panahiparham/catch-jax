@@ -3,7 +3,8 @@
 This benchmark runs both agents for 30 seeds (each is one ``jax.vmap`` over seeds)
 over 50k timesteps, then plots two metrics over time with 95% bootstrap
 confidence bands and writes ``benchmark_dqn.pdf`` and ``benchmark_dqn.png``.
-No experiment harness, no results database — a single self-contained file.
+It is a single self-contained file with no separate experiment harness or
+results database.
 
 Both metrics are exponential moving averages (β=0.99) tracked inline in the scan:
 
@@ -22,7 +23,7 @@ Both metrics are exponential moving averages (β=0.99) tracked inline in the sca
    (not timesteps; for catch-rate, n is the count of resolved balls).
 
 Since Catch is a continuing environment (no terminal states), every Q-target
-bootstraps normally — no terminal masking of the next-state value.
+bootstraps normally, with no terminal masking of the next-state value.
 
 Hyperparameters from NeverEndingRL's ``position_catch/Catch50k/DQN.json``:
 - Total timesteps: 50,000
@@ -327,8 +328,8 @@ def make_plot(dqn_rewards, random_rewards, path):
     # Downsample to PLOT_POINTS before bootstrapping/plotting. The EMA signal
     # is dense (one value per timestep) and smooth, so subsampling loses no
     # visible detail; skipping this step would feed bootstrap_mean_ci's chunked
-    # fancy-indexing arrays of shape (1000, N_SEEDS, TOTAL_TIMESTEPS) — 12 GB at
-    # T=50_000 — instead of the ~100 MB this produces. `endpoint=True` guarantees
+    # fancy-indexing arrays of shape (1000, N_SEEDS, TOTAL_TIMESTEPS) - 12 GB at
+    # T=50_000, instead of the ~100 MB this produces. `endpoint=True` guarantees
     # the final index equals TOTAL_TIMESTEPS - 1, so the summary printout below
     # still reports the true final value, not an interpolated one.
     idx = np.linspace(0, TOTAL_TIMESTEPS - 1, PLOT_POINTS).astype(int)
