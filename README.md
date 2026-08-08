@@ -206,6 +206,7 @@ uv run --group benchmark python benchmark_dancing_catch.py
 ## Throughput
 
 These measure environment steps per second on CPU. Compilation time is excluded.
+The numbers below were measured on an Apple M1 CPU with 8 cores.
 
 Run with:
 
