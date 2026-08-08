@@ -22,6 +22,7 @@ import jax
 import pytest
 import jax.numpy as jnp
 from catch_jax.catch import Catch, CatchParams
+from catch_jax.dancing_catch import DancingCatch, DancingCatchParams
 
 
 @pytest.fixture
@@ -40,3 +41,9 @@ def key() -> jax.Array:
 def deterministic_key() -> jax.Array:
     """A fixed PRNG key for statistical tests (guaranteed reproducibility)."""
     return jax.random.PRNGKey(42)
+
+
+@pytest.fixture
+def dancing_env() -> DancingCatch:
+    """Default DancingCatch environment (10 rows, 5 columns)."""
+    return DancingCatch()
