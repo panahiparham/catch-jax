@@ -235,23 +235,12 @@ def main():
             agent_results[name][n_seeds] = (total_steps, elapsed, throughput)
 
     print()
-    print("| Agent | Seeds | Steps/sec | DQN / Random |")
-    print("|---|---|---|---|")
+    print("| Agent | Seeds | Steps/sec |")
+    print("|---|---|---|")
     for n_seeds in [1, 30]:
-        random_throughput = agent_results["Random"][n_seeds][2]
-        dqn_throughput = agent_results["DQN"][n_seeds][2]
-        dqn_fraction = dqn_throughput / random_throughput
-
-        random_fmt = format_throughput(agent_results["Random"][n_seeds][0], agent_results["Random"][n_seeds][1])
-        dqn_fmt = format_throughput(agent_results["DQN"][n_seeds][0], agent_results["DQN"][n_seeds][1])
-
-        if dqn_fraction < 0.5:
-            fraction_fmt = f"{dqn_fraction:.2f}x"
-        else:
-            fraction_fmt = f"{dqn_fraction:.1f}x"
-
-        print(f"| Random | {n_seeds} | {random_fmt} | - |")
-        print(f"| DQN | {n_seeds} | {dqn_fmt} | {fraction_fmt} |")
+        for name in ["Random", "DQN"]:
+            total_steps, elapsed, _ = agent_results[name][n_seeds]
+            print(f"| {name} | {n_seeds} | {format_throughput(total_steps, elapsed)} |")
 
     print()
     print("=" * 80)
