@@ -24,6 +24,7 @@ benchmark = [
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "optax" },
+    { name = "pillow" },
 ]
 dev = [
     { name = "numpy" },
@@ -38,6 +39,7 @@ benchmark = [
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "optax" },
+    { name = "pillow" },
 ]
 dev = [
     { name = "numpy" },
