@@ -72,11 +72,14 @@ class Catch:
     balls that fall from the top. The observation is a binary board indicating
     ball and paddle positions.
 
-    :param rows: Height of the grid (must be >= 2). Default is 10.
-    :param columns: Width of the grid (must be >= 1). Default is 5.
+    Args:
+        rows: Height of the grid (must be >= 2). Default is 10.
+        columns: Width of the grid (must be >= 1). Default is 5.
     """
 
-    def __init__(self, rows: int = DEFAULT_ROWS, columns: int = DEFAULT_COLUMNS) -> None:
+    def __init__(
+        self, rows: int = DEFAULT_ROWS, columns: int = DEFAULT_COLUMNS
+    ) -> None:
         if rows < 2:
             raise ValueError(
                 f"rows must be >= 2 (got {rows}); row {rows-1} is the paddle row "
@@ -109,9 +112,12 @@ class Catch:
         Paddle is centred at ``columns // 2``. Exactly one ball appears at row 0
         in a uniformly random column.
 
-        :param key: JAX random key.
-        :param params: Environment parameters (unused).
-        :return: Tuple of (observation, state).
+        Args:
+            key: JAX random key.
+            params: Environment parameters (unused).
+
+        Returns:
+            Tuple of (observation, state).
         """
         del params
 
@@ -127,7 +133,12 @@ class Catch:
 
         timestep = jnp.asarray(0, dtype=jnp.int32)
 
-        state = CatchState(paddle_x=paddle_x, ball_cols=ball_cols, ball_mask=ball_mask, timestep=timestep)
+        state = CatchState(
+            paddle_x=paddle_x,
+            ball_cols=ball_cols,
+            ball_mask=ball_mask,
+            timestep=timestep,
+        )
         obs = self._get_observation(paddle_x, ball_cols, ball_mask)
 
         return obs, state
@@ -138,21 +149,23 @@ class Catch:
         state: CatchState,
         action: jax.Array,
         params: CatchParams | None = None,
-    ) -> tuple[jax.Array, CatchState, jax.Array, jax.Array, jax.Array, dict[str, jax.Array]]:
+    ) -> tuple[
+        jax.Array, CatchState, jax.Array, jax.Array, jax.Array, dict[str, jax.Array]
+    ]:
         """Execute one environment step.
 
-        Step order (critical for csuite parity):
-        1. Move the paddle left/stay/right.
-        2. Descend all balls by one row.
-        3. Resolve any ball reaching the paddle row (reward, remove).
-        4. Spawn a new ball with the configured probability.
-        5. Return the observation after removal.
+        Step order matters for csuite parity: move the paddle, descend the
+        balls, resolve any ball landing on the paddle row, then maybe spawn a
+        new one (see the numbered comments in the body).
 
-        :param key: JAX random key (consumed for spawn draws).
-        :param state: Current environment state.
-        :param action: Action index (0=LEFT, 1=STAY, 2=RIGHT).
-        :param params: Environment parameters.
-        :return: Tuple of (obs, next_state, reward, terminated, truncated, info).
+        Args:
+            key: JAX random key (consumed for spawn draws).
+            state: Current environment state.
+            action: Action index (0=LEFT, 1=STAY, 2=RIGHT).
+            params: Environment parameters.
+
+        Returns:
+            Tuple of (obs, next_state, reward, terminated, truncated, info).
         """
         params = params if params is not None else CatchParams()
 
@@ -183,7 +196,9 @@ class Catch:
 
         # 5. Update timestep
         timestep = state.timestep + 1
-        next_state = CatchState(paddle_x=paddle_x, ball_cols=cols, ball_mask=mask, timestep=timestep)
+        next_state = CatchState(
+            paddle_x=paddle_x, ball_cols=cols, ball_mask=mask, timestep=timestep
+        )
 
         # Termination signals
         terminated = jnp.asarray(False)
@@ -195,20 +210,26 @@ class Catch:
 
         return obs, next_state, reward, terminated, truncated, info
 
-    def _get_observation(self, paddle_x: jax.Array, ball_cols: jax.Array, ball_mask: jax.Array) -> jax.Array:
+    def _get_observation(
+        self, paddle_x: jax.Array, ball_cols: jax.Array, ball_mask: jax.Array
+    ) -> jax.Array:
         """Construct the binary board observation.
 
-        Uses one-hot encoding (not scatter) so that an unoccupied row's
-        placeholder column index cannot accidentally overwrite the paddle cell.
+        Args:
+            paddle_x: Paddle column position.
+            ball_cols: Column index for each row (padded with 0 for empty rows).
+            ball_mask: Boolean mask indicating which rows hold a ball.
 
-        :param paddle_x: Paddle column position.
-        :param ball_cols: Column index for each row (padded with 0 for empty rows).
-        :param ball_mask: Boolean mask indicating which rows hold a ball.
-        :return: Binary board of shape (rows, columns) with dtype float32.
+        Returns:
+            Binary board of shape (rows, columns) with dtype float32.
         """
-        balls = jax.nn.one_hot(ball_cols, self.columns, dtype=jnp.float32) * ball_mask[:, None]
+        # One-hot encoding (not scatter) so an unoccupied row's placeholder
+        # column index cannot accidentally overwrite the paddle cell.
+        one_hot_cols = jax.nn.one_hot(ball_cols, self.columns, dtype=jnp.float32)
+        balls = one_hot_cols * ball_mask[:, None]
         paddle_row = (jnp.arange(self.rows) == self.rows - 1).astype(jnp.float32)
-        paddle = jax.nn.one_hot(paddle_x, self.columns, dtype=jnp.float32) * paddle_row[:, None]
+        one_hot_paddle = jax.nn.one_hot(paddle_x, self.columns, dtype=jnp.float32)
+        paddle = one_hot_paddle * paddle_row[:, None]
         return jnp.maximum(balls, paddle)
 
     def render(self, state: CatchState) -> jax.Array:
@@ -217,8 +238,11 @@ class Catch:
         Returns a uint8 array matching csuite's binary_board_to_rgb: 0 (black)
         for empty cells, 255 (white) for occupied cells.
 
-        :param state: Environment state.
-        :return: RGB image of shape (rows, columns, 3) with dtype uint8.
+        Args:
+            state: Environment state.
+
+        Returns:
+            RGB image of shape (rows, columns, 3) with dtype uint8.
         """
         board = self._get_observation(state.paddle_x, state.ball_cols, state.ball_mask)
         board_uint8 = (board.astype(jnp.uint8) * 255)

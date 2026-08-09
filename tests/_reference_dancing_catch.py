@@ -1,8 +1,9 @@
 """Vendored numpy reference DancingCatch environment, used ONLY as a test oracle.
 
 This is a verbatim-derived copy of the original numpy DancingCatch implementation
-from google-deepmind/csuite (https://github.com/google-deepmind/csuite/blob/main/csuite/environments/dancing_catch.py),
-adapted for test-only use as a parity oracle against catch-jax.
+from google-deepmind/csuite:
+https://github.com/google-deepmind/csuite/blob/main/csuite/environments/dancing_catch.py
+Adapted for test-only use as a parity oracle against catch-jax.
 
 The parity tests roll out both the JAX env and this reference side-by-side and
 assert exact agreement on observation and reward at every step, and on the
@@ -10,13 +11,15 @@ permutation structure (shuffle_idx) as well.
 
 Minor modifications are marked with comments:
 - Removed dm_env and csuite dependencies; stands alone with only numpy and stdlib.
-- Fixed bug: allocate board from self._params.rows/columns instead of module constants (same as _reference_catch.py).
+- Fixed bug: allocate board from self._params.rows/columns instead of module
+  constants (same as _reference_catch.py).
 - Added injectable spawn source: optional list of (spawn: bool, column: int) events
   for test-driven determinism. When exhausted or None, falls back to RNG.
 - Added injectable swap source: optional list of (idx_1: int, idx_2: int) events
   for test-driven determinism. When exhausted or None, falls back to RNG.
-- Modified constructor to match reset() style: rows, columns, spawn_probability, seed,
-  swap_every, and optional event sources are all constructor parameters, not class config.
+- Modified constructor to match reset() style: rows, columns, spawn_probability,
+  seed, swap_every, and optional event sources are all constructor parameters,
+  not class config.
 """
 
 # Apache License Version 2.0, January 2004
@@ -233,10 +236,14 @@ class DancingCatch:
                 spawn, new_col = next(self._spawn_events)
             except StopIteration:
                 spawn = bool(self._rng.uniform() < self._params.spawn_probability)
-                new_col = int(self._rng.integers(0, self._params.columns)) if spawn else 0
+                new_col = 0
+                if spawn:
+                    new_col = int(self._rng.integers(0, self._params.columns))
         else:
             spawn = bool(self._rng.uniform() < self._params.spawn_probability)
-            new_col = int(self._rng.integers(0, self._params.columns)) if spawn else 0
+            new_col = 0
+            if spawn:
+                new_col = int(self._rng.integers(0, self._params.columns))
 
         if spawn:
             balls.append((new_col, 0))

@@ -1,15 +1,17 @@
 """Vendored numpy reference Catch environment, used ONLY as a test oracle.
 
 This is a verbatim-derived copy of the original numpy Catch implementation
-from google-deepmind/csuite (https://github.com/google-deepmind/csuite/blob/main/csuite/environments/catch.py),
-adapted for test-only use as a parity oracle against catch-jax.
+from google-deepmind/csuite:
+https://github.com/google-deepmind/csuite/blob/main/csuite/environments/catch.py
+Adapted for test-only use as a parity oracle against catch-jax.
 
 The parity tests roll out both the JAX env and this reference side-by-side and
 assert exact agreement on board state and reward at every step.
 
 Minor modifications are marked with comments:
 - Removed dm_env and csuite dependencies; stands alone with only numpy and stdlib.
-- Fixed bug: allocate board from self._params.rows/columns instead of module constants (§3b).
+- Fixed bug: allocate board from self._params.rows/columns instead of module
+  constants (§3b).
 - Added injectable spawn source: optional list of (spawn: bool, column: int) events
   for test-driven determinism. When exhausted or None, falls back to RNG.
 """
@@ -102,7 +104,9 @@ class Catch:
         if columns < 1:
             raise ValueError(f"columns must be >= 1 (got {columns})")
 
-        self._params = Params(rows=rows, columns=columns, spawn_probability=spawn_probability)
+        self._params = Params(
+            rows=rows, columns=columns, spawn_probability=spawn_probability
+        )
         self._rng = np.random.default_rng(seed)
 
         # Event injection for testing: a queue of (spawn: bool, column: int) tuples.
@@ -169,7 +173,9 @@ class Catch:
         assert self._state is not None, "Must call reset() before step()"
 
         # 1. Move paddle: LEFT=0 -> dx=-1, STAY=1 -> dx=0, RIGHT=2 -> dx=+1
-        paddle_x = np.clip(self._state.paddle_x + (action - 1), 0, self._params.columns - 1)
+        paddle_x = np.clip(
+            self._state.paddle_x + (action - 1), 0, self._params.columns - 1
+        )
 
         # 2. Descend balls: roll down and clear row 0
         cols = np.roll(self._state.ball_cols, 1)
@@ -202,10 +208,14 @@ class Catch:
                 spawn, new_col = next(self._spawn_events)
             except StopIteration:
                 spawn = bool(self._rng.uniform() < self._params.spawn_probability)
-                new_col = int(self._rng.integers(0, self._params.columns)) if spawn else 0
+                new_col = 0
+                if spawn:
+                    new_col = int(self._rng.integers(0, self._params.columns))
         else:
             spawn = bool(self._rng.uniform() < self._params.spawn_probability)
-            new_col = int(self._rng.integers(0, self._params.columns)) if spawn else 0
+            new_col = 0
+            if spawn:
+                new_col = int(self._rng.integers(0, self._params.columns))
 
         if spawn:
             cols[0] = new_col
@@ -224,8 +234,8 @@ class Catch:
     def get_board(self) -> np.ndarray:
         """Get the binary board representation.
 
-        Returns a (rows, columns) int array with 1 where a ball or paddle sits, 0 elsewhere.
-        The paddle is always at row (rows-1).
+        Returns a (rows, columns) int array with 1 where a ball or paddle sits,
+        0 elsewhere. The paddle is always at row (rows-1).
 
         NOTE: Bug fix from csuite: allocate board from self._params.rows/columns
         instead of module constants, so non-default board sizes work correctly.
@@ -239,7 +249,8 @@ class Catch:
         board = np.zeros((self._params.rows, self._params.columns), dtype=np.int32)
 
         # Place balls.
-        for row, (col, has_ball) in enumerate(zip(self._state.ball_cols, self._state.ball_mask)):
+        ball_rows = zip(self._state.ball_cols, self._state.ball_mask)
+        for row, (col, has_ball) in enumerate(ball_rows):
             if has_ball:
                 board[row, col] = 1
 

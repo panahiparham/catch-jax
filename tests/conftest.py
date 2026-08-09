@@ -15,12 +15,8 @@ issue.)
 from __future__ import annotations
 
 import jax
-
-# Catch dynamics are integer/exact, so float32 is sufficient and x64 not needed.
-# This is documented above so the omission reads as intentional, not an oversight.
-
 import pytest
-import jax.numpy as jnp
+
 from catch_jax.catch import Catch, CatchParams
 from catch_jax.dancing_catch import DancingCatch, DancingCatchParams
 

@@ -1,4 +1,4 @@
-"""JAX implementation of the continuing Catch environment with non-stationary observation permutations.
+"""JAX implementation of Catch with a non-stationary observation permutation.
 
 DancingCatch is identical to Catch except the observation is flattened to shape
 (rows*columns,) and gathered through a permutation shuffle_idx. Every swap_every
@@ -76,11 +76,14 @@ class DancingCatch:
     whose entries are read through a permutation that is periodically perturbed
     by a random transposition.
 
-    :param rows: Height of the grid (must be >= 2). Default is 10.
-    :param columns: Width of the grid (must be >= 1). Default is 5.
+    Args:
+        rows: Height of the grid (must be >= 2). Default is 10.
+        columns: Width of the grid (must be >= 1). Default is 5.
     """
 
-    def __init__(self, rows: int = DEFAULT_ROWS, columns: int = DEFAULT_COLUMNS) -> None:
+    def __init__(
+        self, rows: int = DEFAULT_ROWS, columns: int = DEFAULT_COLUMNS
+    ) -> None:
         if rows < 2:
             raise ValueError(
                 f"rows must be >= 2 (got {rows}); row {rows-1} is the paddle row "
@@ -94,11 +97,15 @@ class DancingCatch:
 
     # -- spaces ------------------------------------------------------------- #
 
-    def observation_space(self, params: DancingCatchParams | None = None) -> ObservationSpace:
+    def observation_space(
+        self, params: DancingCatchParams | None = None
+    ) -> ObservationSpace:
         del params
         return _DancingCatchObservationSpace(self.observation_dim)
 
-    def action_space(self, params: DancingCatchParams | None = None) -> DiscreteActionSpace:
+    def action_space(
+        self, params: DancingCatchParams | None = None
+    ) -> DiscreteActionSpace:
         del params
         return _DancingCatchActionSpace()
 
@@ -115,9 +122,12 @@ class DancingCatch:
         in a uniformly random column. The observation permutation is initialized
         to the identity.
 
-        :param key: JAX random key.
-        :param params: Environment parameters (unused).
-        :return: Tuple of (observation, state).
+        Args:
+            key: JAX random key.
+            params: Environment parameters (unused).
+
+        Returns:
+            Tuple of (observation, state).
         """
         del params
 
@@ -153,23 +163,29 @@ class DancingCatch:
         state: DancingCatchState,
         action: jax.Array,
         params: DancingCatchParams | None = None,
-    ) -> tuple[jax.Array, DancingCatchState, jax.Array, jax.Array, jax.Array, dict[str, jax.Array]]:
+    ) -> tuple[
+        jax.Array,
+        DancingCatchState,
+        jax.Array,
+        jax.Array,
+        jax.Array,
+        dict[str, jax.Array],
+    ]:
         """Execute one environment step.
 
-        Step order (critical for csuite parity):
-        1. Move the paddle left/stay/right.
-        2. Descend all balls by one row.
-        3. Resolve any ball reaching the paddle row (reward, remove).
-        4. Spawn a new ball with the configured probability.
-        5. Advance the swap counter and, on a swap step, transpose two entries
-           of the observation permutation.
-        6. Return the observation built from the updated permutation.
+        Step order matters for csuite parity: move the paddle, descend the
+        balls, resolve any ball landing on the paddle row, maybe spawn a new
+        one, then advance the swap counter and maybe transpose two entries of
+        the observation permutation (see the numbered comments in the body).
 
-        :param key: JAX random key (consumed for spawn and swap draws).
-        :param state: Current environment state.
-        :param action: Action index (0=LEFT, 1=STAY, 2=RIGHT).
-        :param params: Environment parameters.
-        :return: Tuple of (obs, next_state, reward, terminated, truncated, info).
+        Args:
+            key: JAX random key (consumed for spawn and swap draws).
+            state: Current environment state.
+            action: Action index (0=LEFT, 1=STAY, 2=RIGHT).
+            params: Environment parameters.
+
+        Returns:
+            Tuple of (obs, next_state, reward, terminated, truncated, info).
         """
         params = params if params is not None else DancingCatchParams()
 
@@ -208,7 +224,8 @@ class DancingCatch:
         swap_idx = jax.random.randint(swap_key, (2,), 0, self.observation_dim)
 
         i1, i2 = swap_idx[0], swap_idx[1]
-        swapped = state.shuffle_idx.at[i1].set(state.shuffle_idx[i2]).at[i2].set(state.shuffle_idx[i1])
+        swapped = state.shuffle_idx.at[i1].set(state.shuffle_idx[i2])
+        swapped = swapped.at[i2].set(state.shuffle_idx[i1])
         shuffle_idx = jnp.where(do_swap, swapped, state.shuffle_idx)
         time_since_swap = jnp.where(do_swap, 0, time_since_swap).astype(jnp.int32)
 
@@ -246,18 +263,22 @@ class DancingCatch:
         Builds a 2-D binary board (identical to Catch._get_observation), then
         flattens it and gathers entries via the shuffle_idx permutation.
 
-        Uses one-hot encoding (not scatter) so that an unoccupied row's
-        placeholder column index cannot accidentally overwrite the paddle cell.
+        Args:
+            paddle_x: Paddle column position.
+            ball_cols: Column index for each row (padded with 0 for empty rows).
+            ball_mask: Boolean mask indicating which rows hold a ball.
+            shuffle_idx: Permutation indices for the flattened observation.
 
-        :param paddle_x: Paddle column position.
-        :param ball_cols: Column index for each row (padded with 0 for empty rows).
-        :param ball_mask: Boolean mask indicating which rows hold a ball.
-        :param shuffle_idx: Permutation indices for the flattened observation.
-        :return: Permuted flat board of shape (rows*columns,) with dtype float32.
+        Returns:
+            Permuted flat board of shape (rows*columns,) with dtype float32.
         """
-        balls = jax.nn.one_hot(ball_cols, self.columns, dtype=jnp.float32) * ball_mask[:, None]
+        # One-hot encoding (not scatter) so an unoccupied row's placeholder
+        # column index cannot accidentally overwrite the paddle cell.
+        one_hot_cols = jax.nn.one_hot(ball_cols, self.columns, dtype=jnp.float32)
+        balls = one_hot_cols * ball_mask[:, None]
         paddle_row = (jnp.arange(self.rows) == self.rows - 1).astype(jnp.float32)
-        paddle = jax.nn.one_hot(paddle_x, self.columns, dtype=jnp.float32) * paddle_row[:, None]
+        one_hot_paddle = jax.nn.one_hot(paddle_x, self.columns, dtype=jnp.float32)
+        paddle = one_hot_paddle * paddle_row[:, None]
         board = jnp.maximum(balls, paddle)
         return board.reshape(-1)[shuffle_idx]
 
@@ -269,10 +290,15 @@ class DancingCatch:
         this shows the permuted board (reshaped from the shuffled observation),
         matching csuite's behavior.
 
-        :param state: Environment state.
-        :return: RGB image of shape (rows, columns, 3) with dtype uint8.
+        Args:
+            state: Environment state.
+
+        Returns:
+            RGB image of shape (rows, columns, 3) with dtype uint8.
         """
-        obs = self._get_observation(state.paddle_x, state.ball_cols, state.ball_mask, state.shuffle_idx)
+        obs = self._get_observation(
+            state.paddle_x, state.ball_cols, state.ball_mask, state.shuffle_idx
+        )
         board = obs.reshape(self.rows, self.columns)
         board_uint8 = (board.astype(jnp.uint8) * 255)
         # Expand channel axis and tile to 3 channels

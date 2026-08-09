@@ -108,8 +108,12 @@ class TestInheritedBallDescent:
         for i in range(1, len(ball_rows)):
             assert ball_rows[i] == ball_rows[i - 1] + 1
 
-    def test_no_new_ball_with_zero_spawn_probability(self, key: jax.Array) -> None:
-        """With spawn_probability=0, no new ball spawns after the initial one resolves."""
+    def test_no_new_ball_with_zero_spawn_probability(
+        self, key: jax.Array
+    ) -> None:
+        """With spawn_probability=0, no new ball spawns after the initial
+        one resolves.
+        """
         env = DancingCatch(rows=5, columns=5)
         obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0)
@@ -120,7 +124,8 @@ class TestInheritedBallDescent:
         for _ in range(20):
             _, state, _, _, _, _ = env.step(key, state, 1, params)
             assert jnp.sum(state.ball_mask) == 0, (
-                "Board must be empty with spawn_probability=0 after initial ball resolves"
+                "Board must be empty with spawn_probability=0 after "
+                "initial ball resolves"
             )
 
 
@@ -205,8 +210,12 @@ class TestInheritedResolvedBallRemoval:
 class TestInheritedInvariants:
     """Tests for state invariants across long rollouts."""
 
-    def test_invariant_at_most_one_ball_per_row(self, deterministic_key: jax.Array) -> None:
-        """At most one ball occupies any row, over 300 steps at spawn_probability=1.0."""
+    def test_invariant_at_most_one_ball_per_row(
+        self, deterministic_key: jax.Array
+    ) -> None:
+        """At most one ball occupies any row, over 300 steps at
+        spawn_probability=1.0.
+        """
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
         obs, state = env.reset(key)
@@ -223,7 +232,9 @@ class TestInheritedInvariants:
                 f"got {ball_count_per_row} at step {step_i}"
             )
 
-    def test_invariant_paddle_row_never_holds_ball(self, deterministic_key: jax.Array) -> None:
+    def test_invariant_paddle_row_never_holds_ball(
+        self, deterministic_key: jax.Array
+    ) -> None:
         """The paddle row never holds a ball after a step."""
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
@@ -240,8 +251,12 @@ class TestInheritedInvariants:
                 f"violated at step {step_i}"
             )
 
-    def test_steady_state_at_spawn_probability_one(self, deterministic_key: jax.Array) -> None:
-        """At spawn_probability=1.0, the board reaches steady state of rows-1 balls."""
+    def test_steady_state_at_spawn_probability_one(
+        self, deterministic_key: jax.Array
+    ) -> None:
+        """At spawn_probability=1.0, the board reaches steady state of
+        rows-1 balls.
+        """
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
         obs, state = env.reset(key)
@@ -264,7 +279,9 @@ class TestInheritedInvariants:
 class TestInheritedSpawnProbability:
     """Tests for spawn probability behavior."""
 
-    def test_spawn_probability_one_always_spawns(self, deterministic_key: jax.Array) -> None:
+    def test_spawn_probability_one_always_spawns(
+        self, deterministic_key: jax.Array
+    ) -> None:
         """With spawn_probability=1.0, row 0 holds a ball after every step."""
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
@@ -279,8 +296,12 @@ class TestInheritedSpawnProbability:
                 f"violated at step {step_i}"
             )
 
-    def test_spawn_probability_zero_never_spawns(self, deterministic_key: jax.Array) -> None:
-        """With spawn_probability=0.0, no ball spawns after the initial one resolves."""
+    def test_spawn_probability_zero_never_spawns(
+        self, deterministic_key: jax.Array
+    ) -> None:
+        """With spawn_probability=0.0, no ball spawns after the initial
+        one resolves.
+        """
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
         obs, state = env.reset(key)
@@ -330,8 +351,12 @@ class TestPermutationInvariance:
                 f"shuffle_idx must be a permutation at step {step_i}"
             )
 
-    def test_shuffle_idx_stays_identity_when_swap_disabled(self, key: jax.Array) -> None:
-        """With swap_every larger than rollout, shuffle_idx stays the identity."""
+    def test_shuffle_idx_stays_identity_when_swap_disabled(
+        self, key: jax.Array
+    ) -> None:
+        """With swap_every larger than rollout, shuffle_idx stays the
+        identity.
+        """
         env = DancingCatch(rows=5, columns=5)
         obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0, swap_every=10000)
@@ -434,7 +459,8 @@ class TestSwapTiming:
 
             # time_since_swap should cycle in [0, 1, ..., swap_every-1]
             assert 0 <= int(state.time_since_swap) < swap_every, (
-                f"time_since_swap out of range at step {step_i}: {state.time_since_swap}"
+                f"time_since_swap out of range at step {step_i}: "
+                f"{state.time_since_swap}"
             )
 
             # If time_since_swap == 0, a swap just occurred (shuffle_idx may differ)
@@ -487,7 +513,9 @@ class TestSwapMagnitude:
 class TestPermutationDrift:
     """Tests for permutation drifting away from identity over time."""
 
-    def test_permutation_drifts_from_identity(self, deterministic_key: jax.Array) -> None:
+    def test_permutation_drifts_from_identity(
+        self, deterministic_key: jax.Array
+    ) -> None:
         """Over a long rollout with swap_every=1 and fixed seed, shuffle_idx
         eventually differs from the identity.
         """
@@ -540,7 +568,8 @@ class TestSwapStatistics:
             prev_shuffle_idx = state.shuffle_idx.copy()
 
         # Check that position counts are roughly uniform
-        # With 5000 steps and swap_every=1, expect ~2 changes per step = ~10000 total changes
+        # With 5000 steps and swap_every=1, expect ~2 changes per step =
+        # ~10000 total changes
         # Distributed over 25 positions: ~400 per position
         # Allow large tolerance since this is statistical
         expected_count = float(np.sum(position_counts)) / 25

@@ -6,7 +6,12 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-from catch_jax.dancing_catch import DancingCatch, DancingCatchParams, DancingCatchState, NUM_ACTIONS
+from catch_jax.dancing_catch import (
+    DancingCatch,
+    DancingCatchParams,
+    DancingCatchState,
+    NUM_ACTIONS,
+)
 from catch_jax.gym_env import GymEnv
 
 
@@ -63,7 +68,8 @@ class TestConstructor:
         assert env.columns == 4
 
     def test_dancing_catch_rows_too_small_raises(self) -> None:
-        """DancingCatch(rows=1) raises ValueError: the spawn and paddle rows would coincide."""
+        """DancingCatch(rows=1) raises ValueError: the spawn and paddle rows
+        would coincide."""
         with pytest.raises(ValueError):
             DancingCatch(rows=1)
 
@@ -84,7 +90,9 @@ class TestReset:
         assert isinstance(state, DancingCatchState)
 
     @pytest.mark.parametrize("rows,columns", [(10, 5), (6, 3), (2, 2), (20, 7)])
-    def test_reset_observation_shape_dtype(self, key: jax.Array, rows: int, columns: int) -> None:
+    def test_reset_observation_shape_dtype(
+        self, key: jax.Array, rows: int, columns: int
+    ) -> None:
         """reset() observation must have shape (rows*columns,) and dtype float32."""
         env = DancingCatch(rows=rows, columns=columns)
         obs, _ = env.reset(key)
@@ -142,7 +150,8 @@ class TestStep:
     """Tests for the step() method."""
 
     def test_step_returns_six_tuple(self, key: jax.Array) -> None:
-        """step() must return a 6-tuple: (obs, state, reward, terminated, truncated, info)."""
+        """step() must return a 6-tuple: (obs, state, reward, terminated,
+        truncated, info)."""
         env = DancingCatch()
         obs, state = env.reset(key)
         result = env.step(key, state, 1)
@@ -186,7 +195,9 @@ class TestStep:
         assert info == {}
 
     @pytest.mark.parametrize("action", range(NUM_ACTIONS))
-    def test_step_terminated_truncated_dtypes(self, key: jax.Array, action: int) -> None:
+    def test_step_terminated_truncated_dtypes(
+        self, key: jax.Array, action: int
+    ) -> None:
         """step() terminated and truncated must be scalar bool arrays."""
         env = DancingCatch()
         obs, state = env.reset(key)
@@ -202,14 +213,16 @@ class TestTermination:
     """Tests for episode termination signals."""
 
     def test_never_terminates_long_rollout(self, key: jax.Array) -> None:
-        """DancingCatch is continuing: terminated stays False over a 200-step rollout."""
+        """DancingCatch is continuing: terminated stays False over a
+        200-step rollout."""
         env = DancingCatch()
         obs, state = env.reset(key)
 
         for step_i in range(200):
             _, state, _, terminated, _, _ = env.step(key, state, 1)
             assert not bool(terminated), (
-                f"terminated must be False (continuing env), but got True at step {step_i}"
+                f"terminated must be False (continuing env), but got True "
+                f"at step {step_i}"
             )
 
     def test_truncates_at_max_steps_in_episode(self, key: jax.Array) -> None:
@@ -224,7 +237,8 @@ class TestTermination:
             _, state, _, _, truncated, _ = env.step(key, state, 1, params)
             assert state.timestep == expected_timestep
             assert not bool(truncated), (
-                f"truncated must be False before max_steps, at timestep {expected_timestep}"
+                f"truncated must be False before max_steps, at timestep "
+                f"{expected_timestep}"
             )
 
         # Step N: truncated must be True

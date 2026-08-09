@@ -23,13 +23,26 @@ SWAP_EVERY = 10_000
 
 
 def run_panel(name, env, env_params, obs_dim, total_timesteps):
-    """Run DQN and random agents on one environment; returns a plot panel dict."""
-    random_train = partial(bm.random_train, env=env, env_params=env_params,
-                           obs_dim=obs_dim, action_dim=NUM_ACTIONS,
-                           total_timesteps=total_timesteps)
-    dqn_train = partial(bm.dqn_train, env=env, env_params=env_params,
-                        obs_dim=obs_dim, action_dim=NUM_ACTIONS,
-                        total_timesteps=total_timesteps)
+    """Run DQN and random agents on one environment.
+
+    Args:
+        name: Environment name, used for logging and as the plot panel title.
+        env: Environment instance.
+        env_params: Environment parameters.
+        obs_dim: Flattened observation dimension.
+        total_timesteps: Number of steps to run each agent for.
+
+    Returns:
+        Plot panel dict consumed by ``benchmark_common.make_learning_curves_plot``.
+    """
+    random_train = partial(
+        bm.random_train, env=env, env_params=env_params,
+        obs_dim=obs_dim, action_dim=NUM_ACTIONS, total_timesteps=total_timesteps,
+    )
+    dqn_train = partial(
+        bm.dqn_train, env=env, env_params=env_params,
+        obs_dim=obs_dim, action_dim=NUM_ACTIONS, total_timesteps=total_timesteps,
+    )
 
     results = {}
     for agent_name, fn in [("DQN", dqn_train), ("Random", random_train)]:
@@ -37,7 +50,10 @@ def run_panel(name, env, env_params, obs_dim, total_timesteps):
         print(f"Running {name} {agent_name}...")
         results[agent_name] = bm.run(fn, N_SEEDS)
         elapsed = time.perf_counter() - t
-        print(f"  {agent_name}: {N_SEEDS} seeds x {total_timesteps} steps in {elapsed:.1f}s")
+        print(
+            f"  {agent_name}: {N_SEEDS} seeds x {total_timesteps} steps "
+            f"in {elapsed:.1f}s"
+        )
 
     return {
         "name": name,
@@ -54,18 +70,24 @@ def main():
     catch_env = Catch()
     catch_params = CatchParams()
     catch_obs_dim = int(np.prod(catch_env.observation_space(catch_params).shape))
-    catch_panel = run_panel("Catch", catch_env, catch_params, catch_obs_dim, CATCH_TOTAL_TIMESTEPS)
+    catch_panel = run_panel(
+        "Catch", catch_env, catch_params, catch_obs_dim, CATCH_TOTAL_TIMESTEPS
+    )
 
     dancing_env = DancingCatch()
     dancing_params = DancingCatchParams(swap_every=SWAP_EVERY)
     dancing_obs_dim = int(np.prod(dancing_env.observation_space(dancing_params).shape))
-    dancing_panel = run_panel("Dancing Catch", dancing_env, dancing_params, dancing_obs_dim,
-                               DANCING_CATCH_TOTAL_TIMESTEPS)
+    dancing_panel = run_panel(
+        "Dancing Catch", dancing_env, dancing_params, dancing_obs_dim,
+        DANCING_CATCH_TOTAL_TIMESTEPS,
+    )
 
     elapsed_total = time.perf_counter() - t_start
     print(f"\nTotal time: {elapsed_total:.1f}s")
 
-    bm.make_learning_curves_plot([catch_panel, dancing_panel], "benchmark_learning_curves.pdf")
+    bm.make_learning_curves_plot(
+        [catch_panel, dancing_panel], "benchmark_learning_curves.pdf"
+    )
 
 
 if __name__ == "__main__":

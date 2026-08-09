@@ -6,7 +6,8 @@ interface described here.  New-style environments implementing
 being passed to any ``make_train`` function.
 
 Adapted from:
-https://github.com/andnp/jax-research-template/blob/main/libs/rl-components/src/rl_components/gym_env.py
+https://github.com/andnp/jax-research-template/blob/main/libs/rl-components/
+src/rl_components/gym_env.py
 
 ``step`` differs from the source: it returns separate ``terminated`` and
 ``truncated`` signals instead of a single combined ``done`` flag.
@@ -46,7 +47,9 @@ class GymEnv[ActionSpaceT](Protocol):
 
     def action_space(self, params: object | None = None) -> ActionSpaceT: ...
 
-    def reset(self, key: jax.Array, params: object | None = None) -> tuple[jax.Array, object]: ...
+    def reset(
+        self, key: jax.Array, params: object | None = None
+    ) -> tuple[jax.Array, object]: ...
 
     def step(
         self,
@@ -54,4 +57,6 @@ class GymEnv[ActionSpaceT](Protocol):
         state: Any,
         action: jax.Array,
         params: object | None = None,
-    ) -> tuple[jax.Array, object, jax.Array, jax.Array, jax.Array, dict[str, jax.Array]]: ...
+    ) -> tuple[
+        jax.Array, object, jax.Array, jax.Array, jax.Array, dict[str, jax.Array]
+    ]: ...

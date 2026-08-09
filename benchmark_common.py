@@ -107,7 +107,9 @@ def random_train(rng, env, env_params, obs_dim, action_dim, total_timesteps):
         state, obs, rng = carry
         rng, k_a, k_step = jax.random.split(rng, 3)
         action = jax.random.randint(k_a, (), 0, action_dim, dtype=jnp.int32)
-        next_obs, next_state, reward, _, _, _ = env.step(k_step, state, action, env_params)
+        next_obs, next_state, reward, _, _, _ = env.step(
+            k_step, state, action, env_params
+        )
         next_obs = next_obs.reshape(obs_dim)
         return (next_state, next_obs, rng), reward
 
@@ -133,15 +135,20 @@ def dqn_train(rng, env, env_params, obs_dim, action_dim, total_timesteps):
         rand_a = jax.random.randint(k_a, (), 0, action_dim, dtype=jnp.int32)
         action = jnp.where(jax.random.uniform(k_expl) < EPSILON, rand_a, greedy)
 
-        next_obs, next_state, reward, terminated, _, _ = env.step(k_step, state, action, env_params)
+        next_obs, next_state, reward, terminated, _, _ = env.step(
+            k_step, state, action, env_params
+        )
         next_obs = next_obs.reshape(obs_dim)
-        buffer = buffer_add(buffer, obs, action, reward, next_obs, terminated.astype(jnp.float32))
+        buffer = buffer_add(
+            buffer, obs, action, reward, next_obs, terminated.astype(jnp.float32)
+        )
 
         def do_train(params, opt_state):
             b_obs, b_a, b_r, b_nobs, b_term = buffer_sample(buffer, k_sample)
 
             def loss_fn(p):
-                q_a = jnp.take_along_axis(mlp(p, b_obs), b_a[:, None], axis=-1).squeeze(-1)
+                q_all = mlp(p, b_obs)
+                q_a = jnp.take_along_axis(q_all, b_a[:, None], axis=-1).squeeze(-1)
                 bootstrap = (1.0 - b_term) * jnp.max(mlp(target, b_nobs), axis=-1)
                 target_q = b_r + GAMMA * bootstrap
                 return jnp.mean((q_a - jax.lax.stop_gradient(target_q)) ** 2)
@@ -150,7 +157,11 @@ def dqn_train(rng, env, env_params, obs_dim, action_dim, total_timesteps):
             updates, opt_state = optimizer.update(grads, opt_state)
             return optax.apply_updates(params, updates), opt_state
 
-        can_train = (t >= UPDATE_FREQ - 1) & (t % UPDATE_FREQ == UPDATE_FREQ - 1) & (buffer.size >= BATCH_SIZE)
+        can_train = (
+            (t >= UPDATE_FREQ - 1)
+            & (t % UPDATE_FREQ == UPDATE_FREQ - 1)
+            & (buffer.size >= BATCH_SIZE)
+        )
         params, opt_state = jax.lax.cond(
             can_train,
             lambda: do_train(params, opt_state),
@@ -174,8 +185,11 @@ def dqn_train(rng, env, env_params, obs_dim, action_dim, total_timesteps):
 def _compute_emas(rewards):
     """Bias-corrected reward EMA and catch-rate EMA from one seed's reward sequence.
 
-    :param rewards: [T] array of rewards (-1, 0, or +1)
-    :return: ([T], [T]) pair of bias-corrected reward EMA and catch-rate EMA
+    Args:
+        rewards: [T] array of rewards (-1, 0, or +1).
+
+    Returns:
+        ([T], [T]) pair of bias-corrected reward EMA and catch-rate EMA.
     """
     def step(carry, reward):
         ema_r, ema_c, n_steps, n_resolved = carry
@@ -208,8 +222,11 @@ _compute_emas_batched = jax.jit(jax.vmap(_compute_emas))
 def compute_emas(rewards):
     """Bias-corrected reward EMA and catch-rate EMA for a batch of seeds.
 
-    :param rewards: [N_SEEDS, T] array of rewards (-1, 0, or +1)
-    :return: ([N_SEEDS, T], [N_SEEDS, T]) pair of bias-corrected EMAs
+    Args:
+        rewards: [N_SEEDS, T] array of rewards (-1, 0, or +1).
+
+    Returns:
+        ([N_SEEDS, T], [N_SEEDS, T]) pair of bias-corrected EMAs.
     """
     ema_rs, ema_cs = _compute_emas_batched(jnp.asarray(rewards))
     return np.asarray(ema_rs), np.asarray(ema_cs)
@@ -225,11 +242,15 @@ def run(train_fn, n_seeds):
 def bootstrap_mean_ci(stack, n_boot=10_000, lo=2.5, hi=97.5, seed=0):
     """Mean and percentile-bootstrap CI over seeds.
 
-    :param stack: [N_SEEDS, T] array
-    :param n_boot: number of bootstrap samples
-    :param lo, hi: percentile bounds for CI
-    :param seed: RNG seed for reproducibility
-    :return: (mean, ci_lo, ci_hi) each of shape [T]
+    Args:
+        stack: [N_SEEDS, T] array.
+        n_boot: Number of bootstrap samples.
+        lo: Lower percentile bound for the CI.
+        hi: Upper percentile bound for the CI.
+        seed: RNG seed for reproducibility.
+
+    Returns:
+        (mean, ci_lo, ci_hi), each of shape [T].
     """
     n, m = stack.shape
     mean = stack.mean(axis=0)
@@ -249,8 +270,23 @@ CATCHRATE_YLIM = (0.0, 1.0)
 CATCHRATE_YTICKS = [0.0, 0.9]
 
 
-def _plot_ema_panel(ax, x, dqn_mean, dqn_lo, dqn_hi, random_mean, random_lo, random_hi,
-                     title, ylabel, total_timesteps, ylim, yticks):
+class _PanelSummary(NamedTuple):
+    name: str
+    n_seeds: int
+    dqn_reward: float
+    dqn_reward_std: float
+    random_reward: float
+    random_reward_std: float
+    dqn_catchrate: float
+    dqn_catchrate_std: float
+    random_catchrate: float
+    random_catchrate_std: float
+
+
+def _plot_ema_panel(
+    ax, x, dqn_mean, dqn_lo, dqn_hi, random_mean, random_lo, random_hi,
+    title, ylabel, total_timesteps, ylim, yticks,
+):
     """Draw one DQN-vs-random EMA panel (mean line + bootstrap CI band) onto ax."""
     ax.fill_between(x, dqn_lo, dqn_hi, color="tab:blue", alpha=0.2)
     ax.plot(x, dqn_mean, lw=2.5, color="tab:blue", label="DQN")
@@ -275,10 +311,11 @@ def make_learning_curves_plot(panels, path):
     Panels are laid out in a single row, two per environment (reward, then
     catch-rate), in the order ``panels`` is given.
 
-    :param panels: list of dicts, one per environment, each with keys
-        ``name``, ``dqn_rewards`` [N_SEEDS, T], ``random_rewards`` [N_SEEDS, T],
-        ``total_timesteps``, and ``n_seeds``
-    :param path: output file path (a same-named .png is also written)
+    Args:
+        panels: List of dicts, one per environment, each with keys ``name``,
+            ``dqn_rewards`` [N_SEEDS, T], ``random_rewards`` [N_SEEDS, T],
+            ``total_timesteps``, and ``n_seeds``.
+        path: Output file path (a same-named .png is also written).
     """
     base = plt.rcParams["font.size"]
     font_sizes = {
@@ -300,26 +337,47 @@ def make_learning_curves_plot(panels, path):
 
             idx = np.linspace(0, panel["total_timesteps"] - 1, PLOT_POINTS).astype(int)
             dqn_ema_rs, dqn_ema_cs = dqn_ema_rs[:, idx], dqn_ema_cs[:, idx]
-            random_ema_rs, random_ema_cs = random_ema_rs[:, idx], random_ema_cs[:, idx]
+            random_ema_rs = random_ema_rs[:, idx]
+            random_ema_cs = random_ema_cs[:, idx]
 
             dqn_r_mean, dqn_r_lo, dqn_r_hi = bootstrap_mean_ci(dqn_ema_rs)
             dqn_c_mean, dqn_c_lo, dqn_c_hi = bootstrap_mean_ci(dqn_ema_cs)
             random_r_mean, random_r_lo, random_r_hi = bootstrap_mean_ci(random_ema_rs)
             random_c_mean, random_c_lo, random_c_hi = bootstrap_mean_ci(random_ema_cs)
 
-            _plot_ema_panel(ax_r, idx, dqn_r_mean, dqn_r_lo, dqn_r_hi, random_r_mean, random_r_lo, random_r_hi,
-                             panel["name"], "Reward EMA", panel["total_timesteps"], REWARD_YLIM, REWARD_YTICKS)
-            _plot_ema_panel(ax_c, idx, dqn_c_mean, dqn_c_lo, dqn_c_hi, random_c_mean, random_c_lo, random_c_hi,
-                             panel["name"], "Catch-rate EMA", panel["total_timesteps"], CATCHRATE_YLIM, CATCHRATE_YTICKS)
+            _plot_ema_panel(
+                ax_r, idx,
+                dqn_r_mean, dqn_r_lo, dqn_r_hi,
+                random_r_mean, random_r_lo, random_r_hi,
+                panel["name"], "Reward EMA", panel["total_timesteps"],
+                REWARD_YLIM, REWARD_YTICKS,
+            )
+            _plot_ema_panel(
+                ax_c, idx,
+                dqn_c_mean, dqn_c_lo, dqn_c_hi,
+                random_c_mean, random_c_lo, random_c_hi,
+                panel["name"], "Catch-rate EMA", panel["total_timesteps"],
+                CATCHRATE_YLIM, CATCHRATE_YTICKS,
+            )
 
-            summaries.append((panel["name"], panel["n_seeds"],
-                               dqn_r_mean[-1], np.std(dqn_ema_rs[:, -1]),
-                               random_r_mean[-1], np.std(random_ema_rs[:, -1]),
-                               dqn_c_mean[-1], np.std(dqn_ema_cs[:, -1]),
-                               random_c_mean[-1], np.std(random_ema_cs[:, -1])))
+            summaries.append(_PanelSummary(
+                name=panel["name"],
+                n_seeds=panel["n_seeds"],
+                dqn_reward=dqn_r_mean[-1],
+                dqn_reward_std=np.std(dqn_ema_rs[:, -1]),
+                random_reward=random_r_mean[-1],
+                random_reward_std=np.std(random_ema_rs[:, -1]),
+                dqn_catchrate=dqn_c_mean[-1],
+                dqn_catchrate_std=np.std(dqn_ema_cs[:, -1]),
+                random_catchrate=random_c_mean[-1],
+                random_catchrate_std=np.std(random_ema_cs[:, -1]),
+            ))
 
         handles, labels = axes[0].get_legend_handles_labels()
-        fig.legend(handles, labels, loc="upper center", ncol=len(labels), frameon=False, bbox_to_anchor=(0.5, 1.1))
+        fig.legend(
+            handles, labels, loc="upper center", ncol=len(labels),
+            frameon=False, bbox_to_anchor=(0.5, 1.1),
+        )
 
         fig.tight_layout()
 
@@ -328,12 +386,19 @@ def make_learning_curves_plot(panels, path):
             fig.savefig(p, bbox_inches="tight", dpi=150)
             print(f"saved {p}")
 
-    for name, n_seeds, dqn_r, dqn_r_std, rand_r, rand_r_std, dqn_c, dqn_c_std, rand_c, rand_c_std in summaries:
+    for s in summaries:
         print("\n" + "=" * 70)
-        print(f"SUMMARY: {name} final metrics (mean ± std across {n_seeds} seeds)")
+        print(f"SUMMARY: {s.name} final metrics (mean ± std across {s.n_seeds} seeds)")
         print("=" * 70)
         print(f"{'Metric':<25} {'DQN':<30} {'Random':<30}")
         print("-" * 70)
-        print(f"{'Reward EMA':<25} {dqn_r:>7.4f} ± {dqn_r_std:>6.4f}  {rand_r:>7.4f} ± {rand_r_std:>6.4f}")
-        print(f"{'Catch-rate EMA':<25} {dqn_c:>7.4f} ± {dqn_c_std:>6.4f}  {rand_c:>7.4f} ± {rand_c_std:>6.4f}")
+        print(
+            f"{'Reward EMA':<25} {s.dqn_reward:>7.4f} ± {s.dqn_reward_std:>6.4f}  "
+            f"{s.random_reward:>7.4f} ± {s.random_reward_std:>6.4f}"
+        )
+        print(
+            f"{'Catch-rate EMA':<25} "
+            f"{s.dqn_catchrate:>7.4f} ± {s.dqn_catchrate_std:>6.4f}  "
+            f"{s.random_catchrate:>7.4f} ± {s.random_catchrate_std:>6.4f}"
+        )
         print("=" * 70)

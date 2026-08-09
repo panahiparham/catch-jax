@@ -195,7 +195,8 @@ def test_event_replay_parity(
         )
 
         # Extract the spawn event: row 0 is always freshly written by step(),
-        # so ball_mask[0] and ball_cols[0] unambiguously indicate spawn status and column.
+        # so ball_mask[0] and ball_cols[0] unambiguously indicate spawn status
+        # and column.
         spawned = bool(state_jax.ball_mask[0])
         spawn_col = int(state_jax.ball_cols[0]) if spawned else 0
         spawn_events.append((spawned, spawn_col))
@@ -326,7 +327,9 @@ def test_render_parity(rows: int, columns: int, seed: int) -> None:
     np.testing.assert_array_equal(
         render_jax,
         render_ref,
-        err_msg=f"Render mismatch at reset (rows={rows}, columns={columns}, seed={seed})",
+        err_msg=(
+            f"Render mismatch at reset (rows={rows}, columns={columns}, seed={seed})"
+        ),
     )
 
     # Roll a few steps, collecting swap events, and check render parity at each step.

@@ -79,7 +79,9 @@ class TestBallDescent:
     """Tests for ball movement and no-spawn behavior."""
 
     def test_ball_descends_one_row_per_step(self, key: jax.Array) -> None:
-        """With spawn_probability=0, the ball descends one row per step until it resolves at the paddle row."""
+        """With spawn_probability=0, the ball descends one row per step until it
+        resolves at the paddle row.
+        """
         env = Catch(rows=5, columns=5)
         obs, state = env.reset(key)
 
@@ -103,7 +105,9 @@ class TestBallDescent:
             assert ball_rows[i] == ball_rows[i - 1] + 1
 
     def test_no_new_ball_with_zero_spawn_probability(self, key: jax.Array) -> None:
-        """With spawn_probability=0, no new ball spawns after the initial one resolves."""
+        """With spawn_probability=0, no new ball spawns after the initial one
+        resolves.
+        """
         env = Catch(rows=5, columns=5)
         obs, state = env.reset(key)
         params = CatchParams(spawn_probability=0.0)
@@ -117,7 +121,8 @@ class TestBallDescent:
         for _ in range(20):
             _, state, _, _, _, _ = env.step(key, state, 1, params)
             assert jnp.sum(state.ball_mask) == 0, (
-                "Board must be empty with spawn_probability=0 after initial ball resolves"
+                "Board must be empty with spawn_probability=0 after initial ball "
+                "resolves"
             )
 
 
@@ -176,7 +181,9 @@ class TestResolvedBallRemoval:
     """Tests verifying that resolved balls are removed before rendering."""
 
     def test_resolved_ball_not_in_observation(self, key: jax.Array) -> None:
-        """A ball resolved this step does not appear in the observation (rendered after removal)."""
+        """A ball resolved this step does not appear in the observation (rendered
+        after removal).
+        """
         env = Catch(rows=5, columns=5)
         # Ball at row 3 (one above paddle row 4), column 2
         state = CatchState(
@@ -205,10 +212,13 @@ class TestResolvedBallRemoval:
 class TestInvariants:
     """Tests for state invariants across long rollouts."""
 
-    def test_invariant_at_most_one_ball_per_row(self, deterministic_key: jax.Array) -> None:
+    def test_invariant_at_most_one_ball_per_row(
+        self, deterministic_key: jax.Array
+    ) -> None:
         """At most one ball occupies any row, over 300 steps at spawn_probability=1.0.
 
-        This invariant is what makes the compact fixed-shape state representation possible.
+        This invariant is what makes the compact fixed-shape state representation
+        possible.
         """
         env = Catch(rows=5, columns=5)
         key = deterministic_key
@@ -223,12 +233,16 @@ class TestInvariants:
             # Check invariant: each row has at most one ball
             ball_count_per_row = jnp.sum(state.ball_mask)
             assert ball_count_per_row <= env.rows - 1, (
-                f"At most {env.rows - 1} balls can exist (one per row except paddle row); "
-                f"got {ball_count_per_row} at step {step_i}"
+                f"At most {env.rows - 1} balls can exist (one per row except "
+                f"paddle row); got {ball_count_per_row} at step {step_i}"
             )
 
-    def test_invariant_paddle_row_never_holds_ball(self, deterministic_key: jax.Array) -> None:
-        """The paddle row never holds a ball after a step; resolved balls are removed immediately."""
+    def test_invariant_paddle_row_never_holds_ball(
+        self, deterministic_key: jax.Array
+    ) -> None:
+        """The paddle row never holds a ball after a step; resolved balls are
+        removed immediately.
+        """
         env = Catch(rows=5, columns=5)
         key = deterministic_key
         obs, state = env.reset(key)
@@ -245,8 +259,12 @@ class TestInvariants:
                 f"violated at step {step_i}"
             )
 
-    def test_steady_state_at_spawn_probability_one(self, deterministic_key: jax.Array) -> None:
-        """At spawn_probability=1.0, the board reaches a steady state of rows-1 balls (one per non-paddle row)."""
+    def test_steady_state_at_spawn_probability_one(
+        self, deterministic_key: jax.Array
+    ) -> None:
+        """At spawn_probability=1.0, the board reaches a steady state of rows-1
+        balls (one per non-paddle row).
+        """
         env = Catch(rows=5, columns=5)
         key = deterministic_key
         obs, state = env.reset(key)
@@ -271,7 +289,9 @@ class TestInvariants:
 class TestSpawnProbability:
     """Tests for spawn probability behavior."""
 
-    def test_spawn_probability_one_always_spawns(self, deterministic_key: jax.Array) -> None:
+    def test_spawn_probability_one_always_spawns(
+        self, deterministic_key: jax.Array
+    ) -> None:
         """With spawn_probability=1.0, row 0 holds a ball after every step."""
         env = Catch(rows=5, columns=5)
         key = deterministic_key
@@ -287,7 +307,9 @@ class TestSpawnProbability:
                 f"violated at step {step_i}"
             )
 
-    def test_spawn_probability_zero_never_spawns(self, deterministic_key: jax.Array) -> None:
+    def test_spawn_probability_zero_never_spawns(
+        self, deterministic_key: jax.Array
+    ) -> None:
         """With spawn_probability=0.0, no ball spawns after the initial one resolves."""
         env = Catch(rows=5, columns=5)
         key = deterministic_key
@@ -312,7 +334,9 @@ class TestSpawnProbability:
 class TestStatisticalRNG:
     """Tests for random spawn probability and column distribution."""
 
-    def _rollout_spawn_events(self, env: Catch, key: jax.Array, params: CatchParams, num_steps: int):
+    def _rollout_spawn_events(
+        self, env: Catch, key: jax.Array, params: CatchParams, num_steps: int
+    ):
         """Run ``num_steps`` STAY actions via jitted ``lax.scan``, returning per-step
         ``(ball_mask[0], ball_cols[0])``.
 
@@ -326,14 +350,19 @@ class TestStatisticalRNG:
             _, next_state, _, _, _, _ = env.step(step_key, state, 1, params)
             return next_state, (next_state.ball_mask[0], next_state.ball_cols[0])
 
-        _, (spawned, columns) = jax.jit(lambda s, ks: jax.lax.scan(body, s, ks))(state, keys)
+        rollout = jax.jit(lambda s, ks: jax.lax.scan(body, s, ks))
+        _, (spawned, columns) = rollout(state, keys)
         return spawned, columns
 
     def test_spawn_rate_matches_probability(self, deterministic_key: jax.Array) -> None:
-        """Empirical spawn rate over ~20,000 steps matches spawn_probability=0.3 within ±0.02."""
+        """Empirical spawn rate over ~20,000 steps matches spawn_probability=0.3
+        within ±0.02.
+        """
         env = Catch(rows=10, columns=5)
         params = CatchParams(spawn_probability=0.3)
-        spawned, _ = self._rollout_spawn_events(env, deterministic_key, params, num_steps=20000)
+        spawned, _ = self._rollout_spawn_events(
+            env, deterministic_key, params, num_steps=20000
+        )
 
         empirical_rate = float(jnp.mean(spawned))
         tolerance = 0.02
@@ -359,8 +388,8 @@ class TestStatisticalRNG:
             expected_frequency = 1.0 / env.columns
             tolerance = 0.03
             assert abs(col_frequency - expected_frequency) < tolerance, (
-                f"Column {col} frequency {col_frequency} deviates from {expected_frequency} "
-                f"by more than {tolerance}"
+                f"Column {col} frequency {col_frequency} deviates from "
+                f"{expected_frequency} by more than {tolerance}"
             )
 
 

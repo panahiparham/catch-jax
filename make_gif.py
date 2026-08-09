@@ -8,11 +8,12 @@ produces the committed GIF: 5 catches and 11 misses over 120 steps.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import jax
 import jax.numpy as jnp
 import numpy as np
 from PIL import Image
-from pathlib import Path
 
 from catch_jax import Catch, CatchParams
 
@@ -29,7 +30,9 @@ PADDLE_COLOR = (0, 255, 255)
 GRID_COLOR = (50, 50, 50)
 
 
-def build_frame(paddle_x: int, ball_cols: jnp.ndarray, ball_mask: jnp.ndarray) -> Image.Image:
+def build_frame(
+    paddle_x: int, ball_cols: jnp.ndarray, ball_mask: jnp.ndarray
+) -> Image.Image:
     """Render a single frame as a PIL Image."""
     img_h = ROWS * CELL_SIZE
     img_w = COLS * CELL_SIZE
@@ -41,7 +44,12 @@ def build_frame(paddle_x: int, ball_cols: jnp.ndarray, ball_mask: jnp.ndarray) -
             is_paddle = (r == ROWS - 1) and (c == int(paddle_x))
             is_ball = bool(ball_mask[r]) and (int(ball_cols[r]) == c)
 
-            color = BALL_COLOR if is_ball else (PADDLE_COLOR if is_paddle else BACKGROUND)
+            if is_ball:
+                color = BALL_COLOR
+            elif is_paddle:
+                color = PADDLE_COLOR
+            else:
+                color = BACKGROUND
 
             r1, r2 = r * CELL_SIZE, (r + 1) * CELL_SIZE
             c1, c2 = c * CELL_SIZE, (c + 1) * CELL_SIZE
@@ -53,7 +61,7 @@ def build_frame(paddle_x: int, ball_cols: jnp.ndarray, ball_mask: jnp.ndarray) -
     for c in range(1, COLS):
         canvas[:, c * CELL_SIZE] = GRID_COLOR
 
-    return Image.fromarray(canvas, 'RGB')
+    return Image.fromarray(canvas, "RGB")
 
 
 def main() -> None:
@@ -86,7 +94,7 @@ def main() -> None:
         frame = build_frame(state.paddle_x, state.ball_cols, state.ball_mask)
         frames.append(frame)
 
-    output_path = Path('catch_random_policy.gif')
+    output_path = Path("catch_random_policy.gif")
     frames[0].save(
         output_path,
         save_all=True,
@@ -103,5 +111,5 @@ def main() -> None:
     print(f"Catches: {catches}, Misses: {misses}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

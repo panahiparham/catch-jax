@@ -184,7 +184,9 @@ def main():
     jax_single_total, jax_single_elapsed = benchmark_jax_single(jax_single_steps)
     jax_single_throughput = jax_single_total / jax_single_elapsed
     jax_single_speedup = jax_single_throughput / numpy_throughput
-    print(f"  JAX 1x1: {format_throughput(jax_single_total, jax_single_elapsed)} steps/sec ({format_speedup(jax_single_speedup)})")
+    jax_single_display = format_throughput(jax_single_total, jax_single_elapsed)
+    jax_single_speedup_display = format_speedup(jax_single_speedup)
+    print(f"  JAX 1x1: {jax_single_display} steps/sec ({jax_single_speedup_display})")
     rows.append({
         "impl": "catch-jax",
         "n_envs": 1,
@@ -204,7 +206,9 @@ def main():
         total_steps, elapsed = benchmark_jax_vmapped(n_envs, steps)
         throughput = total_steps / elapsed
         speedup = throughput / numpy_throughput
-        print(f"  JAX {n_envs}x: {format_throughput(total_steps, elapsed)} steps/sec ({format_speedup(speedup)})")
+        throughput_display = format_throughput(total_steps, elapsed)
+        speedup_display = format_speedup(speedup)
+        print(f"  JAX {n_envs}x: {throughput_display} steps/sec ({speedup_display})")
         rows.append({
             "impl": "catch-jax",
             "n_envs": n_envs,
@@ -216,7 +220,10 @@ def main():
     print("| Implementation | Environments | Steps/sec | Speedup vs. numpy |")
     print("|---|---|---|---|")
     for row in rows:
-        print(f"| {row['impl']} | {row['n_envs']} | {row['throughput']} | {row['speedup']} |")
+        print(
+            f"| {row['impl']} | {row['n_envs']} | {row['throughput']} | "
+            f"{row['speedup']} |"
+        )
 
     print()
     print("Table 2: Agent Throughput on catch-jax")

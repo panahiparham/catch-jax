@@ -28,10 +28,14 @@ def main() -> None:
         def step(carry, action):
             key, state = carry
             key, subkey = jax.random.split(key)
-            obs, state, reward, terminated, truncated, info = env.step(subkey, state, action, params)
+            obs, state, reward, terminated, truncated, info = env.step(
+                subkey, state, action, params
+            )
             return (key, state), (obs, reward, state.timestep)
 
-        (_, final_state), (obs_seq, rewards, timesteps) = jax.lax.scan(step, (key, state), actions)
+        (_, final_state), (obs_seq, rewards, timesteps) = jax.lax.scan(
+            step, (key, state), actions
+        )
         return final_state, obs_seq, rewards, timesteps
 
     final_state, obs_seq, rewards, timesteps = rollout(rollout_key, state, actions)

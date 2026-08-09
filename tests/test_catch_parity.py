@@ -41,8 +41,8 @@ DETERMINISTIC_STEPS = 300
 @pytest.mark.parametrize("rows,columns", DETERMINISTIC_BOARD_SIZES)
 @pytest.mark.parametrize("seed", DETERMINISTIC_SEEDS)
 def test_deterministic_parity(rows: int, columns: int, seed: int) -> None:
-    """JAX and reference agree exactly over 300+ random actions with spawn_probability=0.0
-    (see module docstring for the parity strategy).
+    """JAX and reference agree exactly over 300+ random actions with
+    spawn_probability=0.0 (see module docstring for the parity strategy).
     """
     # Create and reset the JAX environment.
     jax_env = Catch(rows=rows, columns=columns)
@@ -89,14 +89,20 @@ def test_deterministic_parity(rows: int, columns: int, seed: int) -> None:
         np.testing.assert_array_equal(
             board_jax,
             board_ref,
-            err_msg=f"Board mismatch at step {step_idx} (rows={rows}, columns={columns}, seed={seed})",
+            err_msg=(
+                f"Board mismatch at step {step_idx} "
+                f"(rows={rows}, columns={columns}, seed={seed})"
+            ),
         )
 
         # Assert exact agreement on reward.
         np.testing.assert_equal(
             float(reward_jax),
             float(reward_ref),
-            err_msg=f"Reward mismatch at step {step_idx} (rows={rows}, columns={columns}, seed={seed})",
+            err_msg=(
+                f"Reward mismatch at step {step_idx} "
+                f"(rows={rows}, columns={columns}, seed={seed})"
+            ),
         )
 
 
@@ -116,10 +122,13 @@ EVENT_REPLAY_STEPS = 500
 @pytest.mark.parametrize("rows,columns", EVENT_REPLAY_BOARD_SIZES)
 @pytest.mark.parametrize("spawn_probability", EVENT_REPLAY_SPAWN_PROBS)
 @pytest.mark.parametrize("seed", EVENT_REPLAY_SEEDS)
-def test_event_replay_parity(rows: int, columns: int, spawn_probability: float, seed: int) -> None:
-    """JAX and reference agree when spawn events are replayed (see module docstring for the
-    parity strategy). Row 0 is always freshly written by step() after descent clears it, so
-    ball_mask[0]/ball_cols[0] unambiguously indicate the spawn event to replay.
+def test_event_replay_parity(
+    rows: int, columns: int, spawn_probability: float, seed: int
+) -> None:
+    """JAX and reference agree when spawn events are replayed (see module
+    docstring for the parity strategy). Row 0 is always freshly written by
+    step() after descent clears it, so ball_mask[0]/ball_cols[0] unambiguously
+    indicate the spawn event to replay.
     """
     # Create and reset the JAX environment.
     jax_env = Catch(rows=rows, columns=columns)
@@ -143,11 +152,15 @@ def test_event_replay_parity(rows: int, columns: int, spawn_probability: float, 
         # Step the JAX environment with a fresh key.
         step_key = jax.random.PRNGKey(seed + step_idx + 10000)
         obs_jax, state_jax, reward_jax, _, _, _ = jax_env.step(
-            step_key, state_jax, action_int, CatchParams(spawn_probability=spawn_probability)
+            step_key,
+            state_jax,
+            action_int,
+            CatchParams(spawn_probability=spawn_probability),
         )
 
         # Extract the spawn event: row 0 is always freshly written by step(),
-        # so ball_mask[0] and ball_cols[0] unambiguously indicate spawn status and column.
+        # so ball_mask[0] and ball_cols[0] unambiguously indicate spawn status
+        # and column.
         spawned = bool(state_jax.ball_mask[0])
         spawn_col = int(state_jax.ball_cols[0]) if spawned else 0
         spawn_events.append((spawned, spawn_col))
@@ -171,7 +184,10 @@ def test_event_replay_parity(rows: int, columns: int, spawn_probability: float, 
         # Step the JAX environment.
         step_key = jax.random.PRNGKey(seed + step_idx + 10000)
         obs_jax, state_jax, reward_jax, _, _, _ = jax_env.step(
-            step_key, state_jax, action_int, CatchParams(spawn_probability=spawn_probability)
+            step_key,
+            state_jax,
+            action_int,
+            CatchParams(spawn_probability=spawn_probability),
         )
 
         # Step the reference.
@@ -233,7 +249,10 @@ def test_render_parity(rows: int, columns: int, seed: int) -> None:
     np.testing.assert_array_equal(
         render_jax,
         render_ref,
-        err_msg=f"Render mismatch at reset (rows={rows}, columns={columns}, seed={seed})",
+        err_msg=(
+            f"Render mismatch at reset "
+            f"(rows={rows}, columns={columns}, seed={seed})"
+        ),
     )
 
     # Roll a few steps and check render parity at each step with spawn_probability=0.0.
