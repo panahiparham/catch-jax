@@ -1,13 +1,17 @@
 # catch-jax
 
-A JAX implementation of the continuing Catch environment and its non-stationary
-Dancing Catch variant, both from [google-deepmind/csuite](https://github.com/google-deepmind/csuite).
-`reset` and `step` are pure functions and are fully JIT- and vmap-able, enabling
-distributed training and large-scale experimentation.
+This project is a JAX re-implementation of the continuing Catch and its non-stationary
+Dancing Catch RL environments [1]. `reset` and `step` are pure functions and are fully JIT- and vmap-able, enabling
+distributed training and large-scale experimentation. These environments have recently been used to develop and evaluate continual RL algorithms [2].
 
 ## References
 
-- **csuite repository:** google-deepmind/csuite. [https://github.com/google-deepmind/csuite](https://github.com/google-deepmind/csuite)
+[1] [Deepmind's Csuite](https://github.com/google-deepmind/csuite).
+
+[2] Mesbahi, G., Panahi, P. M., Mastikhina, O., Tang, S., White, M., & White, A. (2025).
+[Position: Lifetime tuning is incompatible with continual reinforcement learning](https://openreview.net/challenge?redirect=%2Fpdf%3Fid%3DJMoWFkwnvv).
+*Forty-second International Conference on Machine Learning (ICML)*.
+
 
 ## Installation
 
