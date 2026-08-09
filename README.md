@@ -133,29 +133,16 @@ Two exponential moving averages (EMA) are tracked with beta=0.99:
 Both EMAs are bias-corrected at each step using the standard correction:
 `ema_corrected = ema / (1 - beta^n)`, where n is the count of updates (different for each EMA).
 
-### Catch
+Catch runs for 50,000 timesteps; Dancing Catch runs for 500,000 timesteps with
+`swap_every=10_000`, giving 50 observation swaps. Lines are the mean over 30
+seeds, and shaded bands are 95% bootstrap confidence intervals of the mean.
 
-50,000 timesteps, 30 seeds.
-
-![DQN vs. random agent on Catch](benchmark_dqn.png)
-
-Run with:
-
-```sh
-uv run --group benchmark python benchmark_dqn.py
-```
-
-### Dancing Catch
-
-500,000 timesteps, 30 seeds, `swap_every=10_000` giving 50 observation swaps, which the
-plot marks with vertical guidelines.
-
-![DQN vs. random agent on Dancing Catch](benchmark_dancing_catch.png)
+![DQN vs. random agent on Catch and Dancing Catch](benchmark_learning_curves.png)
 
 Run with:
 
 ```sh
-uv run --group benchmark python benchmark_dancing_catch.py
+uv run --group benchmark python benchmark_learning_curves.py
 ```
 
 ## Throughput

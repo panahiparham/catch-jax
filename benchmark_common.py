@@ -8,7 +8,6 @@ import jax
 import jax.numpy as jnp
 import jax.lax
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 import numpy as np
 import optax
 
@@ -244,85 +243,97 @@ def bootstrap_mean_ci(stack, n_boot=10_000, lo=2.5, hi=97.5, seed=0):
     return mean, ci_lo, ci_hi
 
 
-def make_plot(dqn_rewards, random_rewards, title, path, total_timesteps, n_seeds, swap_steps=None):
-    """Plot reward EMA and catch-rate EMA over time with bootstrap CIs.
+REWARD_YLIM = (-0.08, 0.1)
+REWARD_YTICKS = [-0.075, 0.075]
+CATCHRATE_YLIM = (0.0, 1.0)
+CATCHRATE_YTICKS = [0.0, 0.9]
 
-    :param dqn_rewards: [N_SEEDS, T] array of DQN rewards
-    :param random_rewards: [N_SEEDS, T] array of random agent rewards
-    :param title: plot title
-    :param path: output file path
-    :param total_timesteps: total timesteps in the run
-    :param n_seeds: number of seeds
-    :param swap_steps: optional list of steps to mark with vertical guidelines
+
+def _plot_ema_panel(ax, x, dqn_mean, dqn_lo, dqn_hi, random_mean, random_lo, random_hi,
+                     title, ylabel, total_timesteps, ylim, yticks):
+    """Draw one DQN-vs-random EMA panel (mean line + bootstrap CI band) onto ax."""
+    ax.fill_between(x, dqn_lo, dqn_hi, color="tab:blue", alpha=0.2)
+    ax.plot(x, dqn_mean, lw=2.5, color="tab:blue", label="DQN")
+    ax.fill_between(x, random_lo, random_hi, color="tab:red", alpha=0.2)
+    ax.plot(x, random_mean, lw=2.5, color="tab:red", label="Random")
+
+    ax.set_title(title)
+    ax.set_xlabel("Timestep")
+    ax.set_ylabel(ylabel, labelpad=8)
+    ax.set_xlim(0, total_timesteps)
+    ax.set_xticks([0, total_timesteps])
+    ax.set_ylim(*ylim)
+    ax.set_yticks(yticks)
+    ax.grid(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+
+def make_learning_curves_plot(panels, path):
+    """Plot reward EMA and catch-rate EMA panels for one or more environments.
+
+    Panels are laid out in a single row, two per environment (reward, then
+    catch-rate), in the order ``panels`` is given.
+
+    :param panels: list of dicts, one per environment, each with keys
+        ``name``, ``dqn_rewards`` [N_SEEDS, T], ``random_rewards`` [N_SEEDS, T],
+        ``total_timesteps``, and ``n_seeds``
+    :param path: output file path (a same-named .png is also written)
     """
-    if swap_steps is None:
-        swap_steps = []
+    base = plt.rcParams["font.size"]
+    font_sizes = {
+        "font.size": base + 4,
+        "axes.titlesize": base + 4,
+        "axes.labelsize": base + 4,
+        "xtick.labelsize": base + 4,
+        "ytick.labelsize": base + 4,
+        "legend.fontsize": base + 4,
+    }
 
-    dqn_ema_rs, dqn_ema_cs = compute_emas(dqn_rewards)
-    random_ema_rs, random_ema_cs = compute_emas(random_rewards)
+    with plt.rc_context(font_sizes):
+        fig, axes = plt.subplots(1, 2 * len(panels), figsize=(5 * len(panels) * 2, 4))
 
-    idx = np.linspace(0, total_timesteps - 1, PLOT_POINTS).astype(int)
-    dqn_ema_rs, dqn_ema_cs = dqn_ema_rs[:, idx], dqn_ema_cs[:, idx]
-    random_ema_rs, random_ema_cs = random_ema_rs[:, idx], random_ema_cs[:, idx]
+        summaries = []
+        for panel, (ax_r, ax_c) in zip(panels, axes.reshape(-1, 2)):
+            dqn_ema_rs, dqn_ema_cs = compute_emas(panel["dqn_rewards"])
+            random_ema_rs, random_ema_cs = compute_emas(panel["random_rewards"])
 
-    dqn_r_mean, dqn_r_lo, dqn_r_hi = bootstrap_mean_ci(dqn_ema_rs)
-    dqn_c_mean, dqn_c_lo, dqn_c_hi = bootstrap_mean_ci(dqn_ema_cs)
-    random_r_mean, random_r_lo, random_r_hi = bootstrap_mean_ci(random_ema_rs)
-    random_c_mean, random_c_lo, random_c_hi = bootstrap_mean_ci(random_ema_cs)
+            idx = np.linspace(0, panel["total_timesteps"] - 1, PLOT_POINTS).astype(int)
+            dqn_ema_rs, dqn_ema_cs = dqn_ema_rs[:, idx], dqn_ema_cs[:, idx]
+            random_ema_rs, random_ema_cs = random_ema_rs[:, idx], random_ema_cs[:, idx]
 
-    x = idx
+            dqn_r_mean, dqn_r_lo, dqn_r_hi = bootstrap_mean_ci(dqn_ema_rs)
+            dqn_c_mean, dqn_c_lo, dqn_c_hi = bootstrap_mean_ci(dqn_ema_cs)
+            random_r_mean, random_r_lo, random_r_hi = bootstrap_mean_ci(random_ema_rs)
+            random_c_mean, random_c_lo, random_c_hi = bootstrap_mean_ci(random_ema_cs)
 
-    fig, (ax_r, ax_c) = plt.subplots(2, 1, sharex=True, figsize=(10, 8))
+            _plot_ema_panel(ax_r, idx, dqn_r_mean, dqn_r_lo, dqn_r_hi, random_r_mean, random_r_lo, random_r_hi,
+                             panel["name"], "Reward EMA", panel["total_timesteps"], REWARD_YLIM, REWARD_YTICKS)
+            _plot_ema_panel(ax_c, idx, dqn_c_mean, dqn_c_lo, dqn_c_hi, random_c_mean, random_c_lo, random_c_hi,
+                             panel["name"], "Catch-rate EMA", panel["total_timesteps"], CATCHRATE_YLIM, CATCHRATE_YTICKS)
 
-    ax_r.fill_between(x, dqn_r_lo, dqn_r_hi, color="tab:blue", alpha=0.2)
-    ax_r.plot(x, dqn_r_mean, lw=2.5, color="tab:blue", label="DQN")
-    ax_r.fill_between(x, random_r_lo, random_r_hi, color="tab:red", alpha=0.2)
-    ax_r.plot(x, random_r_mean, lw=2.5, color="tab:red", label="Random")
+            summaries.append((panel["name"], panel["n_seeds"],
+                               dqn_r_mean[-1], np.std(dqn_ema_rs[:, -1]),
+                               random_r_mean[-1], np.std(random_ema_rs[:, -1]),
+                               dqn_c_mean[-1], np.std(dqn_ema_cs[:, -1]),
+                               random_c_mean[-1], np.std(random_ema_cs[:, -1])))
 
-    for step in swap_steps:
-        ax_r.axvline(step, color="gray", alpha=0.15, lw=0.8, zorder=0)
+        handles, labels = axes[0].get_legend_handles_labels()
+        fig.legend(handles, labels, loc="upper center", ncol=len(labels), frameon=False, bbox_to_anchor=(0.5, 1.1))
 
-    ax_r.set_ylabel("Reward EMA", rotation=0, ha="right", va="center", labelpad=12)
-    ax_r.grid(False)
-    ax_r.spines["top"].set_visible(False)
-    ax_r.spines["right"].set_visible(False)
+        fig.tight_layout()
 
-    ax_c.fill_between(x, dqn_c_lo, dqn_c_hi, color="tab:blue", alpha=0.2)
-    ax_c.plot(x, dqn_c_mean, lw=2.5, color="tab:blue", label="DQN")
-    ax_c.fill_between(x, random_c_lo, random_c_hi, color="tab:red", alpha=0.2)
-    ax_c.plot(x, random_c_mean, lw=2.5, color="tab:red", label="Random")
+        for ext in (".png", ".pdf"):
+            p = path.replace(".pdf", ext)
+            fig.savefig(p, bbox_inches="tight", dpi=150)
+            print(f"saved {p}")
 
-    for step in swap_steps:
-        ax_c.axvline(step, color="gray", alpha=0.15, lw=0.8, zorder=0)
-
-    ax_c.set_xlabel("Timestep")
-    ax_c.set_ylabel("Catch-rate EMA", rotation=0, ha="right", va="center", labelpad=12)
-    ax_c.grid(False)
-    ax_c.spines["top"].set_visible(False)
-    ax_c.spines["right"].set_visible(False)
-
-    if swap_steps:
-        swap_proxy = Line2D([], [], color="gray", alpha=0.6, lw=1.2)
-        handles, labels = ax_r.get_legend_handles_labels()
-        ax_r.legend(handles + [swap_proxy], labels + ["Observation swap"], loc="best", frameon=False)
-        ax_c.legend(loc="best", frameon=False)
-    else:
-        ax_r.legend(loc="best", frameon=False)
-        ax_c.legend(loc="best", frameon=False)
-
-    fig.suptitle(title, y=0.995)
-    fig.tight_layout()
-
-    for ext in (".png", ".pdf"):
-        p = path.replace(".pdf", ext)
-        fig.savefig(p, bbox_inches="tight", dpi=150)
-        print(f"saved {p}")
-
-    print("\n" + "=" * 70)
-    print(f"SUMMARY: Final metrics (mean ± std across {n_seeds} seeds)")
-    print("=" * 70)
-    print(f"{'Metric':<25} {'DQN':<30} {'Random':<30}")
-    print("-" * 70)
-    print(f"{'Reward EMA':<25} {dqn_r_mean[-1]:>7.4f} ± {np.std(dqn_ema_rs[:, -1]):>6.4f}  {random_r_mean[-1]:>7.4f} ± {np.std(random_ema_rs[:, -1]):>6.4f}")
-    print(f"{'Catch-rate EMA':<25} {dqn_c_mean[-1]:>7.4f} ± {np.std(dqn_ema_cs[:, -1]):>6.4f}  {random_c_mean[-1]:>7.4f} ± {np.std(random_ema_cs[:, -1]):>6.4f}")
-    print("=" * 70)
+    for name, n_seeds, dqn_r, dqn_r_std, rand_r, rand_r_std, dqn_c, dqn_c_std, rand_c, rand_c_std in summaries:
+        print("\n" + "=" * 70)
+        print(f"SUMMARY: {name} final metrics (mean ± std across {n_seeds} seeds)")
+        print("=" * 70)
+        print(f"{'Metric':<25} {'DQN':<30} {'Random':<30}")
+        print("-" * 70)
+        print(f"{'Reward EMA':<25} {dqn_r:>7.4f} ± {dqn_r_std:>6.4f}  {rand_r:>7.4f} ± {rand_r_std:>6.4f}")
+        print(f"{'Catch-rate EMA':<25} {dqn_c:>7.4f} ± {dqn_c_std:>6.4f}  {rand_c:>7.4f} ± {rand_c_std:>6.4f}")
+        print("=" * 70)
