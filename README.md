@@ -220,12 +220,12 @@ The vmapped rows count total steps across all environments.
 
 | Implementation | Environments | Steps/sec | Speedup vs. numpy |
 | --- | --- | --- | --- |
-| csuite (numpy) | 1 | 71,700 | 1x |
-| catch-jax | 1 | 161,000 | 2.2x |
-| catch-jax | 8 | 619,000 | 8.6x |
-| catch-jax | 64 | 3,083,000 | 43x |
-| catch-jax | 512 | 5,131,000 | 72x |
-| catch-jax | 4096 | 3,580,000 | 50x |
+| csuite (numpy) | 1 | 73,100 | 1x |
+| catch-jax | 1 | 159,000 | 2.2x |
+| catch-jax | 8 | 733,000 | 10x |
+| catch-jax | 64 | 2,782,000 | 38x |
+| catch-jax | 512 | 5,201,000 | 71x |
+| catch-jax | 4096 | 3,679,000 | 50x |
 
 **Agent throughput on catch-jax**
 
@@ -235,5 +235,5 @@ streams like these rather than by batching environments under one agent.
 
 | Agent | Steps/sec |
 | --- | --- |
-| Random | 131,000 |
-| DQN | 53,300 |
+| Random | 135,000 |
+| DQN | 55,000 |
