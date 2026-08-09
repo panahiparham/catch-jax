@@ -13,7 +13,7 @@ distributed training and large-scale experimentation. These environments have re
 *Forty-second International Conference on Machine Learning (ICML)*.
 
 
-## Installation
+## Usage
 
 Add it to your project with [uv](https://docs.astral.sh/uv/):
 
@@ -21,71 +21,22 @@ Add it to your project with [uv](https://docs.astral.sh/uv/):
 uv add git+https://github.com/panahiparham/catch-jax
 ```
 
-## Usage
-
 ```python
 import jax
-import jax.numpy as jnp
-
 from catch_jax import Catch, CatchParams
 
-NUM_STEPS = 10
+env = Catch()  # rows and columns are optional; defaults: 10, 5
+params = CatchParams(spawn_probability=0.1, max_steps_in_episode=1000)
 
-def main():
-    # Create environment with default board size (10 rows x 5 columns)
-    env = Catch()  # rows and columns are optional; defaults: 10, 5
-    
-    # Customize parameters as needed
-    params = CatchParams(spawn_probability=0.1, max_steps_in_episode=1000)
+key = jax.random.PRNGKey(0)
+obs, state = env.reset(key)
 
-    # Initialize random key
-    key = jax.random.PRNGKey(42)
-    reset_key, action_key, rollout_key = jax.random.split(key, 3)
-
-    # Reset environment: returns (observation, state)
-    obs, state = env.reset(reset_key)
-    print(f"Initial board shape: {obs.shape}, dtype: {obs.dtype}")
-    
-    # Actions: 0 = LEFT, 1 = STAY, 2 = RIGHT
-    actions = jax.random.randint(action_key, (NUM_STEPS,), 0, 3)
-
-    @jax.jit
-    def rollout(key, state, actions):
-        def step(carry, action):
-            key, state = carry
-            key, subkey = jax.random.split(key)
-            obs, state, reward, terminated, truncated, info = env.step(
-                subkey, state, action, params
-            )
-            return (key, state), (obs, reward, state.timestep)
-
-        (_, final_state), (obs_seq, rewards, timesteps) = jax.lax.scan(
-            step, (key, state), actions
-        )
-        return final_state, obs_seq, rewards, timesteps
-
-    final_state, obs_seq, rewards, timesteps = rollout(rollout_key, state, actions)
-
-    # Print metrics for each step. The paddle row is never occupied by a ball
-    # post-step (a landing ball is resolved and removed the same step), so
-    # `obs_seq[t].sum() - 1` (minus the paddle's own cell) is the number of
-    # balls currently falling.
-    print(f"\nRollout over {NUM_STEPS} steps:")
-    for t in range(NUM_STEPS):
-        r = float(rewards[t])
-        num_balls_falling = int(obs_seq[t].sum()) - 1
-        print(f"  step {t:2d}  action={int(actions[t])}  "
-              f"reward={r:+.0f}  "
-              f"balls_falling={num_balls_falling}  "
-              f"cumulative_reward={float(jnp.sum(rewards[:t+1])):+.0f}")
-
-    # Render the final state as an RGB image
-    rgb_image = env.render(final_state)
-    print(f"\nRendered RGB image shape: {rgb_image.shape}, dtype: {rgb_image.dtype}")
-
-if __name__ == "__main__":
-    main()
+# obs: (rows, columns) board, 1.0 for ball/paddle, 0.0 for empty
+# actions: 0 = LEFT, 1 = STAY, 2 = RIGHT
+obs, state, reward, terminated, truncated, info = env.step(key, state, 1, params)
 ```
+
+See [`example.py`](example.py) for a jitted `lax.scan` rollout.
 
 `DancingCatch` and `DancingCatchParams` have the same interface, so the same code
 works for the variant by swapping the class names.
