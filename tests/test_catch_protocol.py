@@ -232,5 +232,5 @@ class TestTermination:
         _, state, _, _, truncated, _ = env.step(key, state, 1, params)
         assert state.timestep == max_steps
         assert bool(truncated), (
-            f"truncated must be True when timestep >= max_steps_in_episode"
+            "truncated must be True when timestep >= max_steps_in_episode"
         )
