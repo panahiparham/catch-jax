@@ -28,7 +28,7 @@ class TestPaddleMovement:
     def test_left_action_moves_paddle_left(self, key: jax.Array) -> None:
         """LEFT action (0) moves the paddle by -1."""
         env = Catch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         # Place paddle at column 2 by hand
         state = state._replace(paddle_x=jnp.asarray(2, dtype=jnp.int32))
 
@@ -38,7 +38,7 @@ class TestPaddleMovement:
     def test_stay_action_keeps_paddle(self, key: jax.Array) -> None:
         """STAY action (1) leaves the paddle in its current column."""
         env = Catch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         state = state._replace(paddle_x=jnp.asarray(2, dtype=jnp.int32))
 
         _, next_state, _, _, _, _ = env.step(key, state, 1)  # action STAY
@@ -47,7 +47,7 @@ class TestPaddleMovement:
     def test_right_action_moves_paddle_right(self, key: jax.Array) -> None:
         """RIGHT action (2) moves the paddle by +1."""
         env = Catch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         state = state._replace(paddle_x=jnp.asarray(2, dtype=jnp.int32))
 
         _, next_state, _, _, _, _ = env.step(key, state, 2)  # action RIGHT
@@ -56,7 +56,7 @@ class TestPaddleMovement:
     def test_left_clips_at_zero(self, key: jax.Array) -> None:
         """Paddle clips at column 0 under repeated LEFT."""
         env = Catch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         state = state._replace(paddle_x=jnp.asarray(0, dtype=jnp.int32))
 
         for _ in range(5):  # Push left 5 times
@@ -66,7 +66,7 @@ class TestPaddleMovement:
     def test_right_clips_at_boundary(self, key: jax.Array) -> None:
         """Paddle clips at column (columns - 1) under repeated RIGHT."""
         env = Catch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         # Rightmost column for a 5-column board is 4
         state = state._replace(paddle_x=jnp.asarray(4, dtype=jnp.int32))
 
@@ -83,7 +83,7 @@ class TestBallDescent:
         resolves at the paddle row.
         """
         env = Catch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
 
         # Disable spawning so the initial ball is the only one
         params = CatchParams(spawn_probability=0.0)
@@ -109,7 +109,7 @@ class TestBallDescent:
         resolves.
         """
         env = Catch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = CatchParams(spawn_probability=0.0)
 
         # Step until the initial ball resolves (reaches paddle row and is removed)
@@ -194,7 +194,7 @@ class TestResolvedBallRemoval:
         )
 
         params = CatchParams(spawn_probability=0.0)
-        obs, next_state, _, _, _, _ = env.step(key, state, 1, params)
+        obs, _next_state, _, _, _, _ = env.step(key, state, 1, params)
 
         # After the step, the ball has been caught and removed
         # The paddle row (row 4) should not show the ball; it may show the paddle
@@ -222,7 +222,7 @@ class TestInvariants:
         """
         env = Catch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = CatchParams(spawn_probability=1.0)
 
         for step_i in range(300):
@@ -245,7 +245,7 @@ class TestInvariants:
         """
         env = Catch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = CatchParams(spawn_probability=1.0)
 
         for step_i in range(300):
@@ -267,7 +267,7 @@ class TestInvariants:
         """
         env = Catch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = CatchParams(spawn_probability=1.0)
 
         # Warm up for a few steps to let the state settle
