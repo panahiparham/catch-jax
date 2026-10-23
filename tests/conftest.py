@@ -17,8 +17,8 @@ from __future__ import annotations
 import jax
 import pytest
 
-from catch_jax.catch import Catch, CatchParams
-from catch_jax.dancing_catch import DancingCatch, DancingCatchParams
+from catch_jax.catch import Catch
+from catch_jax.dancing_catch import DancingCatch
 
 
 @pytest.fixture

@@ -18,7 +18,6 @@ Two testing modes:
 from __future__ import annotations
 
 import jax
-import jax.numpy as jnp
 import numpy as np
 import pytest
 from _reference_catch import Catch as CatchReference
