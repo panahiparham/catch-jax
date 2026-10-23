@@ -485,14 +485,14 @@ class TestSwapMagnitude:
         """
         env = DancingCatch(rows=4, columns=3)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0, swap_every=1)
 
         prev_shuffle_idx = state.shuffle_idx.copy()
         swap_count = 0
 
         for step_i in range(100):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
             # Since swap_every=1, a swap happens every step
@@ -521,7 +521,7 @@ class TestPermutationDrift:
         """
         env = DancingCatch(rows=4, columns=3)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0, swap_every=1)
 
         drifted = False
@@ -531,7 +531,7 @@ class TestPermutationDrift:
                 drifted = True
                 break
 
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
         assert drifted, "Permutation should drift from identity with swap_every=1"
@@ -547,7 +547,7 @@ class TestSwapStatistics:
         """
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0, swap_every=1)
 
         # Track which positions appear in swaps
@@ -555,7 +555,7 @@ class TestSwapStatistics:
         prev_shuffle_idx = state.shuffle_idx.copy()
 
         for _ in range(5000):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
             # Find which positions changed
@@ -615,7 +615,7 @@ class TestJAXTransformations:
         obs, state = env.reset(key)
 
         jitted_step = jax.jit(env.step)
-        obs, state, reward, terminated, truncated, info = jitted_step(key, state, 1)
+        obs, state, _reward, _terminated, _truncated, _info = jitted_step(key, state, 1)
 
         assert obs.shape == (50,)
         assert isinstance(state, DancingCatchState)
@@ -634,7 +634,7 @@ class TestJAXTransformations:
     def test_vmap_step_over_params(self, key: jax.Array) -> None:
         """vmap over DancingCatchParams (varying swap_every and spawn_probability)."""
         env = DancingCatch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
 
         spawn_probs = jnp.array([0.0, 0.1, 0.5, 1.0])
 
@@ -652,11 +652,11 @@ class TestJAXTransformations:
     def test_lax_scan_rollout(self, key: jax.Array) -> None:
         """lax.scan over step works: the standard jitted-rollout pattern."""
         env = DancingCatch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
 
         def step_fn(state, key):
             action = 1  # STAY
-            obs, next_state, reward, terminated, truncated, info = env.step(
+            obs, next_state, reward, _terminated, _truncated, _info = env.step(
                 key, state, action
             )
             return next_state, (reward, obs)
@@ -675,7 +675,7 @@ class TestRender:
     def test_render_returns_uint8_rgb(self, key: jax.Array) -> None:
         """render(state) returns uint8[rows, columns, 3]."""
         env = DancingCatch(rows=6, columns=4)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         rgb = env.render(state)
 
         assert rgb.shape == (6, 4, 3)
@@ -684,7 +684,7 @@ class TestRender:
     def test_render_values_in_range(self, key: jax.Array) -> None:
         """render() values must be in {0, 255}."""
         env = DancingCatch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         rgb = env.render(state)
 
         unique_values = jnp.unique(rgb)
