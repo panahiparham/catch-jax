@@ -42,7 +42,7 @@ class TestInheritedPaddleMovement:
     def test_left_action_moves_paddle_left(self, key: jax.Array) -> None:
         """LEFT action (0) moves the paddle by -1."""
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         state = state._replace(paddle_x=jnp.asarray(2, dtype=jnp.int32))
 
         _, next_state, _, _, _, _ = env.step(key, state, 0)  # action LEFT
@@ -51,7 +51,7 @@ class TestInheritedPaddleMovement:
     def test_stay_action_keeps_paddle(self, key: jax.Array) -> None:
         """STAY action (1) leaves the paddle in its current column."""
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         state = state._replace(paddle_x=jnp.asarray(2, dtype=jnp.int32))
 
         _, next_state, _, _, _, _ = env.step(key, state, 1)  # action STAY
@@ -60,7 +60,7 @@ class TestInheritedPaddleMovement:
     def test_right_action_moves_paddle_right(self, key: jax.Array) -> None:
         """RIGHT action (2) moves the paddle by +1."""
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         state = state._replace(paddle_x=jnp.asarray(2, dtype=jnp.int32))
 
         _, next_state, _, _, _, _ = env.step(key, state, 2)  # action RIGHT
@@ -69,7 +69,7 @@ class TestInheritedPaddleMovement:
     def test_left_clips_at_zero(self, key: jax.Array) -> None:
         """Paddle clips at column 0 under repeated LEFT."""
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         state = state._replace(paddle_x=jnp.asarray(0, dtype=jnp.int32))
 
         for _ in range(5):
@@ -79,7 +79,7 @@ class TestInheritedPaddleMovement:
     def test_right_clips_at_boundary(self, key: jax.Array) -> None:
         """Paddle clips at column (columns - 1) under repeated RIGHT."""
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         state = state._replace(paddle_x=jnp.asarray(4, dtype=jnp.int32))
 
         for _ in range(5):
@@ -93,7 +93,7 @@ class TestInheritedBallDescent:
     def test_ball_descends_one_row_per_step(self, key: jax.Array) -> None:
         """With spawn_probability=0, the ball descends one row per step."""
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0)
 
         ball_rows = []
@@ -115,7 +115,7 @@ class TestInheritedBallDescent:
         one resolves.
         """
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0)
 
         for _ in range(4):
@@ -200,7 +200,7 @@ class TestInheritedResolvedBallRemoval:
         )
 
         params = DancingCatchParams(spawn_probability=0.0)
-        obs, next_state, _, _, _, _ = env.step(key, state, 1, params)
+        _obs, next_state, _, _, _, _ = env.step(key, state, 1, params)
 
         assert not bool(next_state.ball_mask[env.rows - 1]), (
             "Paddle row must not hold a ball after resolution"
@@ -218,7 +218,7 @@ class TestInheritedInvariants:
         """
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=1.0)
 
         for step_i in range(300):
@@ -238,7 +238,7 @@ class TestInheritedInvariants:
         """The paddle row never holds a ball after a step."""
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=1.0)
 
         for step_i in range(300):
@@ -259,11 +259,11 @@ class TestInheritedInvariants:
         """
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=1.0)
 
         for _ in range(20):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
         for step_i in range(100):
