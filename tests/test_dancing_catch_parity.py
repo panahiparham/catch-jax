@@ -37,10 +37,9 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
-
-from catch_jax.dancing_catch import DancingCatch, DancingCatchParams
 from _reference_dancing_catch import DancingCatch as DancingCatchReference
 
+from catch_jax.dancing_catch import DancingCatch, DancingCatchParams
 
 # =========================================================================== #
 # (a) Deterministic parity: spawn_probability = 0.0, swap_every > rollout

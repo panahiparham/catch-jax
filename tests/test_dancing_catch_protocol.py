@@ -7,10 +7,10 @@ import jax.numpy as jnp
 import pytest
 
 from catch_jax.dancing_catch import (
+    NUM_ACTIONS,
     DancingCatch,
     DancingCatchParams,
     DancingCatchState,
-    NUM_ACTIONS,
 )
 from catch_jax.gym_env import GymEnv
 

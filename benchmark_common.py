@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import NamedTuple
 
 import jax
-import jax.numpy as jnp
 import jax.lax
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
 import optax

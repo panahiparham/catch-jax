@@ -9,10 +9,10 @@ import numpy as np
 import pytest
 
 from catch_jax.dancing_catch import (
+    NUM_ACTIONS,
     DancingCatch,
     DancingCatchParams,
     DancingCatchState,
-    NUM_ACTIONS,
 )
 
 

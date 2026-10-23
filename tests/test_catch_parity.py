@@ -21,10 +21,9 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
-
-from catch_jax.catch import Catch, CatchParams
 from _reference_catch import Catch as CatchReference
 
+from catch_jax.catch import Catch, CatchParams
 
 # =========================================================================== #
 # (a) Deterministic parity: spawn_probability = 0.0

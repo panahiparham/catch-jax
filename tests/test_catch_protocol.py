@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-from catch_jax.catch import Catch, CatchParams, CatchState, NUM_ACTIONS
+from catch_jax.catch import NUM_ACTIONS, Catch, CatchParams, CatchState
 from catch_jax.gym_env import GymEnv
 
 
