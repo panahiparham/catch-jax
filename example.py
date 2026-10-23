@@ -28,7 +28,7 @@ def main() -> None:
         def step(carry, action):
             key, state = carry
             key, subkey = jax.random.split(key)
-            obs, state, reward, terminated, truncated, info = env.step(
+            obs, state, reward, _terminated, _truncated, _info = env.step(
                 subkey, state, action, params
             )
             return (key, state), (obs, reward, state.timestep)
@@ -38,7 +38,7 @@ def main() -> None:
         )
         return final_state, obs_seq, rewards, timesteps
 
-    final_state, obs_seq, rewards, timesteps = rollout(rollout_key, state, actions)
+    final_state, obs_seq, rewards, _timesteps = rollout(rollout_key, state, actions)
 
     # The paddle row is never occupied by a ball post-step (a landing ball is
     # resolved and removed the same step), so `obs_seq[t].sum() - 1` (minus the
