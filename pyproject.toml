@@ -16,6 +16,14 @@ dependencies = [
 packages = ["src/catch_jax"]
 
 [dependency-groups]
-dev = ["pytest", "numpy"]
+dev = [
+    "pytest",
+    "numpy",
+    "ruff>=0.17.2",
+]
 # For benchmark_dqn.py: uv run --group benchmark python benchmark_dqn.py
 benchmark = ["optax", "matplotlib", "numpy", "pillow"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
