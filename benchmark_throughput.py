@@ -41,17 +41,17 @@ def format_throughput(steps, elapsed_s):
     """Format throughput with thousands separators and appropriate precision."""
     throughput = steps / elapsed_s
     if throughput >= 100_000:
-        return f"{int(round(throughput / 1000)) * 1000:,}"
+        return f"{round(throughput / 1000) * 1000:,}"
     elif throughput >= 10_000:
-        return f"{int(round(throughput / 100)) * 100:,}"
+        return f"{round(throughput / 100) * 100:,}"
     else:
-        return f"{int(round(throughput)):,}"
+        return f"{round(throughput):,}"
 
 
 def format_speedup(speedup):
     """Format speedup with appropriate precision."""
     if speedup >= 10:
-        return f"{int(round(speedup))}x"
+        return f"{round(speedup)}x"
     else:
         return f"{speedup:.1f}x"
 
