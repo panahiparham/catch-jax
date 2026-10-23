@@ -306,7 +306,7 @@ def test_render_parity(rows: int, columns: int, seed: int) -> None:
     # Create and reset the JAX environment.
     jax_env = DancingCatch(rows=rows, columns=columns)
     key = jax.random.PRNGKey(seed)
-    obs_jax, state_jax = jax_env.reset(key)
+    _obs_jax, state_jax = jax_env.reset(key)
 
     # Create and reset the reference with the same initial ball column.
     initial_ball_col = int(state_jax.ball_cols[0])
@@ -345,7 +345,7 @@ def test_render_parity(rows: int, columns: int, seed: int) -> None:
 
         # Step JAX.
         step_key = jax.random.PRNGKey(seed + step_idx + 10000)
-        obs_jax, state_jax, _, _, _, _ = jax_env.step(
+        _obs_jax, state_jax, _, _, _, _ = jax_env.step(
             step_key, state_jax, action_int, DancingCatchParams(
                 spawn_probability=0.0, swap_every=1
             )
@@ -373,14 +373,14 @@ def test_render_parity(rows: int, columns: int, seed: int) -> None:
 
     # Reset JAX and re-roll, comparing render at each step.
     key = jax.random.PRNGKey(seed)
-    obs_jax, state_jax = jax_env.reset(key)
+    _obs_jax, state_jax = jax_env.reset(key)
 
     for step_idx, action in enumerate(actions):
         action_int = int(action)
 
         # Step both.
         step_key = jax.random.PRNGKey(seed + step_idx + 10000)
-        obs_jax, state_jax, _, _, _, _ = jax_env.step(
+        _obs_jax, state_jax, _, _, _, _ = jax_env.step(
             step_key, state_jax, action_int, DancingCatchParams(
                 spawn_probability=0.0, swap_every=1
             )
