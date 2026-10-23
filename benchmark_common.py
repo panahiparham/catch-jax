@@ -104,7 +104,7 @@ def random_train(rng, env, env_params, obs_dim, action_dim, total_timesteps):
     obs = obs.reshape(obs_dim)
 
     def step(carry, _):
-        state, obs, rng = carry
+        state, _obs, rng = carry
         rng, k_a, k_step = jax.random.split(rng, 3)
         action = jax.random.randint(k_a, (), 0, action_dim, dtype=jnp.int32)
         next_obs, next_state, reward, _, _, _ = env.step(
@@ -153,7 +153,7 @@ def dqn_train(rng, env, env_params, obs_dim, action_dim, total_timesteps):
                 target_q = b_r + GAMMA * bootstrap
                 return jnp.mean((q_a - jax.lax.stop_gradient(target_q)) ** 2)
 
-            loss, grads = jax.value_and_grad(loss_fn)(params)
+            _loss, grads = jax.value_and_grad(loss_fn)(params)
             updates, opt_state = optimizer.update(grads, opt_state)
             return optax.apply_updates(params, updates), opt_state
 
