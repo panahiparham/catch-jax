@@ -267,7 +267,7 @@ class TestInheritedInvariants:
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
         for step_i in range(100):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
             ball_count = jnp.sum(state.ball_mask)
             assert ball_count == (env.rows - 1), (
@@ -285,11 +285,11 @@ class TestInheritedSpawnProbability:
         """With spawn_probability=1.0, row 0 holds a ball after every step."""
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=1.0)
 
         for step_i in range(10):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
             assert bool(state.ball_mask[0]), (
                 f"Row 0 must have a ball after every step with spawn_probability=1.0; "
@@ -304,15 +304,15 @@ class TestInheritedSpawnProbability:
         """
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0)
 
         for _ in range(5):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
         for step_i in range(50):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
             assert jnp.sum(state.ball_mask) == 0, (
                 f"No new ball must spawn with spawn_probability=0.0; "
@@ -337,7 +337,7 @@ class TestPermutationInvariance:
         """shuffle_idx must be a permutation of arange(rows*columns) at every step."""
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.1, swap_every=10)
 
         for step_i in range(200):
@@ -358,11 +358,11 @@ class TestPermutationInvariance:
         identity.
         """
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0, swap_every=10000)
 
         for _ in range(50):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
         expected_shuffle_idx = jnp.arange(25, dtype=jnp.int32)
@@ -432,7 +432,7 @@ class TestObservationConsistency:
                 "Without swaps, observation should equal plain flattened board"
             )
 
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             obs, state, _, _, _, _ = env.step(key, state, 1, params)
 
 
@@ -448,13 +448,13 @@ class TestSwapTiming:
         """
         env = DancingCatch(rows=4, columns=3)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0, swap_every=swap_every)
 
         prev_shuffle_idx = state.shuffle_idx.copy()
 
         for step_i in range(50):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
             # time_since_swap should cycle in [0, 1, ..., swap_every-1]
