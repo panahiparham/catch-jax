@@ -18,13 +18,11 @@ Two testing modes:
 from __future__ import annotations
 
 import jax
-import jax.numpy as jnp
 import numpy as np
 import pytest
-
-from catch_jax.catch import Catch, CatchParams
 from _reference_catch import Catch as CatchReference
 
+from catch_jax.catch import Catch, CatchParams
 
 # =========================================================================== #
 # (a) Deterministic parity: spawn_probability = 0.0
@@ -235,7 +233,7 @@ def test_render_parity(rows: int, columns: int, seed: int) -> None:
     # Create and reset the JAX environment.
     jax_env = Catch(rows=rows, columns=columns)
     key = jax.random.PRNGKey(seed)
-    obs_jax, state_jax = jax_env.reset(key)
+    _obs_jax, state_jax = jax_env.reset(key)
 
     # Create and reset the reference with the same initial ball column and no spawns.
     initial_ball_col = int(state_jax.ball_cols[0])
@@ -265,7 +263,7 @@ def test_render_parity(rows: int, columns: int, seed: int) -> None:
 
         # Step both with spawn_probability=0.0.
         step_key = jax.random.PRNGKey(seed + step_idx + 10000)
-        obs_jax, state_jax, _, _, _, _ = jax_env.step(
+        _obs_jax, state_jax, _, _, _, _ = jax_env.step(
             step_key, state_jax, action_int, CatchParams(spawn_probability=0.0)
         )
         ref.step(action_int)

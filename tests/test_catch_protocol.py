@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-from catch_jax.catch import Catch, CatchParams, CatchState, NUM_ACTIONS
+from catch_jax.catch import NUM_ACTIONS, Catch, CatchParams, CatchState
 from catch_jax.gym_env import GymEnv
 
 
@@ -141,7 +141,7 @@ class TestStep:
         """step() must return a 6-tuple: (obs, state, reward, terminated,
         truncated, info)."""
         env = Catch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         result = env.step(key, state, 1)
         assert len(result) == 6
 
@@ -149,7 +149,7 @@ class TestStep:
     def test_step_returns_correct_types(self, key: jax.Array, action: int) -> None:
         """step() must return the correct types for all actions."""
         env = Catch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         obs_out, next_state, reward, terminated, truncated, info = env.step(
             key, state, action
         )
@@ -165,7 +165,7 @@ class TestStep:
     def test_step_increments_timestep(self, key: jax.Array) -> None:
         """step() must increment timestep by 1."""
         env = Catch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         assert state.timestep == 0
 
         _, state, _, _, _, _ = env.step(key, state, 1)
@@ -177,7 +177,7 @@ class TestStep:
     def test_step_info_is_empty(self, key: jax.Array) -> None:
         """step() info dict must always be empty."""
         env = Catch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         _, _, _, _, _, info = env.step(key, state, 1)
         assert info == {}
 
@@ -187,7 +187,7 @@ class TestStep:
     ) -> None:
         """step() terminated and truncated must be scalar bool arrays."""
         env = Catch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         _, _, _, terminated, truncated, _ = env.step(key, state, action)
 
         assert terminated.shape == ()
@@ -202,7 +202,7 @@ class TestTermination:
     def test_never_terminates_long_rollout(self, key: jax.Array) -> None:
         """Catch is continuing: terminated stays False over a 200-step rollout."""
         env = Catch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
 
         for step_i in range(200):
             _, state, _, terminated, _, _ = env.step(key, state, 1)
@@ -216,7 +216,7 @@ class TestTermination:
         (mirrors pinball-jax's test style)."""
         env = Catch()
         max_steps = 3
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = CatchParams(max_steps_in_episode=max_steps)
 
         # Step 1 through N-1: truncated must be False
@@ -232,5 +232,5 @@ class TestTermination:
         _, state, _, _, truncated, _ = env.step(key, state, 1, params)
         assert state.timestep == max_steps
         assert bool(truncated), (
-            f"truncated must be True when timestep >= max_steps_in_episode"
+            "truncated must be True when timestep >= max_steps_in_episode"
         )

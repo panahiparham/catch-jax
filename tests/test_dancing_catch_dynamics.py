@@ -9,10 +9,10 @@ import numpy as np
 import pytest
 
 from catch_jax.dancing_catch import (
+    NUM_ACTIONS,
     DancingCatch,
     DancingCatchParams,
     DancingCatchState,
-    NUM_ACTIONS,
 )
 
 
@@ -42,7 +42,7 @@ class TestInheritedPaddleMovement:
     def test_left_action_moves_paddle_left(self, key: jax.Array) -> None:
         """LEFT action (0) moves the paddle by -1."""
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         state = state._replace(paddle_x=jnp.asarray(2, dtype=jnp.int32))
 
         _, next_state, _, _, _, _ = env.step(key, state, 0)  # action LEFT
@@ -51,7 +51,7 @@ class TestInheritedPaddleMovement:
     def test_stay_action_keeps_paddle(self, key: jax.Array) -> None:
         """STAY action (1) leaves the paddle in its current column."""
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         state = state._replace(paddle_x=jnp.asarray(2, dtype=jnp.int32))
 
         _, next_state, _, _, _, _ = env.step(key, state, 1)  # action STAY
@@ -60,7 +60,7 @@ class TestInheritedPaddleMovement:
     def test_right_action_moves_paddle_right(self, key: jax.Array) -> None:
         """RIGHT action (2) moves the paddle by +1."""
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         state = state._replace(paddle_x=jnp.asarray(2, dtype=jnp.int32))
 
         _, next_state, _, _, _, _ = env.step(key, state, 2)  # action RIGHT
@@ -69,7 +69,7 @@ class TestInheritedPaddleMovement:
     def test_left_clips_at_zero(self, key: jax.Array) -> None:
         """Paddle clips at column 0 under repeated LEFT."""
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         state = state._replace(paddle_x=jnp.asarray(0, dtype=jnp.int32))
 
         for _ in range(5):
@@ -79,7 +79,7 @@ class TestInheritedPaddleMovement:
     def test_right_clips_at_boundary(self, key: jax.Array) -> None:
         """Paddle clips at column (columns - 1) under repeated RIGHT."""
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         state = state._replace(paddle_x=jnp.asarray(4, dtype=jnp.int32))
 
         for _ in range(5):
@@ -93,7 +93,7 @@ class TestInheritedBallDescent:
     def test_ball_descends_one_row_per_step(self, key: jax.Array) -> None:
         """With spawn_probability=0, the ball descends one row per step."""
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0)
 
         ball_rows = []
@@ -115,7 +115,7 @@ class TestInheritedBallDescent:
         one resolves.
         """
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0)
 
         for _ in range(4):
@@ -200,7 +200,7 @@ class TestInheritedResolvedBallRemoval:
         )
 
         params = DancingCatchParams(spawn_probability=0.0)
-        obs, next_state, _, _, _, _ = env.step(key, state, 1, params)
+        _obs, next_state, _, _, _, _ = env.step(key, state, 1, params)
 
         assert not bool(next_state.ball_mask[env.rows - 1]), (
             "Paddle row must not hold a ball after resolution"
@@ -218,7 +218,7 @@ class TestInheritedInvariants:
         """
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=1.0)
 
         for step_i in range(300):
@@ -238,7 +238,7 @@ class TestInheritedInvariants:
         """The paddle row never holds a ball after a step."""
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=1.0)
 
         for step_i in range(300):
@@ -259,15 +259,15 @@ class TestInheritedInvariants:
         """
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=1.0)
 
         for _ in range(20):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
         for step_i in range(100):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
             ball_count = jnp.sum(state.ball_mask)
             assert ball_count == (env.rows - 1), (
@@ -285,11 +285,11 @@ class TestInheritedSpawnProbability:
         """With spawn_probability=1.0, row 0 holds a ball after every step."""
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=1.0)
 
         for step_i in range(10):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
             assert bool(state.ball_mask[0]), (
                 f"Row 0 must have a ball after every step with spawn_probability=1.0; "
@@ -304,15 +304,15 @@ class TestInheritedSpawnProbability:
         """
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0)
 
         for _ in range(5):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
         for step_i in range(50):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
             assert jnp.sum(state.ball_mask) == 0, (
                 f"No new ball must spawn with spawn_probability=0.0; "
@@ -337,7 +337,7 @@ class TestPermutationInvariance:
         """shuffle_idx must be a permutation of arange(rows*columns) at every step."""
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.1, swap_every=10)
 
         for step_i in range(200):
@@ -358,11 +358,11 @@ class TestPermutationInvariance:
         identity.
         """
         env = DancingCatch(rows=5, columns=5)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0, swap_every=10000)
 
         for _ in range(50):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
         expected_shuffle_idx = jnp.arange(25, dtype=jnp.int32)
@@ -432,7 +432,7 @@ class TestObservationConsistency:
                 "Without swaps, observation should equal plain flattened board"
             )
 
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             obs, state, _, _, _, _ = env.step(key, state, 1, params)
 
 
@@ -448,13 +448,13 @@ class TestSwapTiming:
         """
         env = DancingCatch(rows=4, columns=3)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0, swap_every=swap_every)
 
         prev_shuffle_idx = state.shuffle_idx.copy()
 
         for step_i in range(50):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
             # time_since_swap should cycle in [0, 1, ..., swap_every-1]
@@ -485,14 +485,14 @@ class TestSwapMagnitude:
         """
         env = DancingCatch(rows=4, columns=3)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0, swap_every=1)
 
         prev_shuffle_idx = state.shuffle_idx.copy()
         swap_count = 0
 
         for step_i in range(100):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
             # Since swap_every=1, a swap happens every step
@@ -521,7 +521,7 @@ class TestPermutationDrift:
         """
         env = DancingCatch(rows=4, columns=3)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0, swap_every=1)
 
         drifted = False
@@ -531,7 +531,7 @@ class TestPermutationDrift:
                 drifted = True
                 break
 
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
         assert drifted, "Permutation should drift from identity with swap_every=1"
@@ -547,7 +547,7 @@ class TestSwapStatistics:
         """
         env = DancingCatch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = DancingCatchParams(spawn_probability=0.0, swap_every=1)
 
         # Track which positions appear in swaps
@@ -555,7 +555,7 @@ class TestSwapStatistics:
         prev_shuffle_idx = state.shuffle_idx.copy()
 
         for _ in range(5000):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
             # Find which positions changed
@@ -615,7 +615,7 @@ class TestJAXTransformations:
         obs, state = env.reset(key)
 
         jitted_step = jax.jit(env.step)
-        obs, state, reward, terminated, truncated, info = jitted_step(key, state, 1)
+        obs, state, _reward, _terminated, _truncated, _info = jitted_step(key, state, 1)
 
         assert obs.shape == (50,)
         assert isinstance(state, DancingCatchState)
@@ -634,7 +634,7 @@ class TestJAXTransformations:
     def test_vmap_step_over_params(self, key: jax.Array) -> None:
         """vmap over DancingCatchParams (varying swap_every and spawn_probability)."""
         env = DancingCatch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
 
         spawn_probs = jnp.array([0.0, 0.1, 0.5, 1.0])
 
@@ -652,11 +652,11 @@ class TestJAXTransformations:
     def test_lax_scan_rollout(self, key: jax.Array) -> None:
         """lax.scan over step works: the standard jitted-rollout pattern."""
         env = DancingCatch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
 
         def step_fn(state, key):
             action = 1  # STAY
-            obs, next_state, reward, terminated, truncated, info = env.step(
+            obs, next_state, reward, _terminated, _truncated, _info = env.step(
                 key, state, action
             )
             return next_state, (reward, obs)
@@ -675,7 +675,7 @@ class TestRender:
     def test_render_returns_uint8_rgb(self, key: jax.Array) -> None:
         """render(state) returns uint8[rows, columns, 3]."""
         env = DancingCatch(rows=6, columns=4)
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         rgb = env.render(state)
 
         assert rgb.shape == (6, 4, 3)
@@ -684,7 +684,7 @@ class TestRender:
     def test_render_values_in_range(self, key: jax.Array) -> None:
         """render() values must be in {0, 255}."""
         env = DancingCatch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         rgb = env.render(state)
 
         unique_values = jnp.unique(rgb)
