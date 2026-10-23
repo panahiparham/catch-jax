@@ -272,12 +272,12 @@ class TestInvariants:
 
         # Warm up for a few steps to let the state settle
         for _ in range(20):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
         # Now check steady state over many steps
         for step_i in range(100):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
             ball_count = jnp.sum(state.ball_mask)
             assert ball_count == (env.rows - 1), (
@@ -295,11 +295,11 @@ class TestSpawnProbability:
         """With spawn_probability=1.0, row 0 holds a ball after every step."""
         env = Catch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = CatchParams(spawn_probability=1.0)
 
         for step_i in range(10):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)  # STAY
             # After each step with p=1.0, row 0 must have a ball
             assert bool(state.ball_mask[0]), (
@@ -313,17 +313,17 @@ class TestSpawnProbability:
         """With spawn_probability=0.0, no ball spawns after the initial one resolves."""
         env = Catch(rows=5, columns=5)
         key = deterministic_key
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
         params = CatchParams(spawn_probability=0.0)
 
         # Let the initial ball resolve
         for _ in range(5):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
 
         # Now verify no new ball ever spawns
         for step_i in range(50):
-            key, subkey = jax.random.split(key)
+            key, _subkey = jax.random.split(key)
             _, state, _, _, _, _ = env.step(key, state, 1, params)
             assert jnp.sum(state.ball_mask) == 0, (
                 f"No new ball must spawn with spawn_probability=0.0; "
@@ -442,7 +442,7 @@ class TestJITAndVmap:
         obs, state = env.reset(key)
 
         jitted_step = jax.jit(env.step)
-        obs, state, reward, terminated, truncated, info = jitted_step(key, state, 1)
+        obs, state, _reward, _terminated, _truncated, _info = jitted_step(key, state, 1)
 
         assert obs.shape == (10, 5)
         assert isinstance(state, CatchState)
@@ -461,7 +461,7 @@ class TestJITAndVmap:
     def test_vmap_step_over_params(self, key: jax.Array) -> None:
         """vmap over CatchParams (varying spawn_probability) works without retracing."""
         env = Catch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
 
         # Batch of spawn probabilities to sweep under vmap.
         spawn_probs = jnp.array([0.0, 0.1, 0.5, 1.0])
@@ -481,11 +481,11 @@ class TestJITAndVmap:
     def test_lax_scan_rollout(self, key: jax.Array) -> None:
         """lax.scan over step works: the standard jitted-rollout pattern."""
         env = Catch()
-        obs, state = env.reset(key)
+        _obs, state = env.reset(key)
 
         def step_fn(state, key):
             action = 1  # STAY
-            obs, next_state, reward, terminated, truncated, info = env.step(
+            obs, next_state, reward, _terminated, _truncated, _info = env.step(
                 key, state, action
             )
             return next_state, (reward, obs)
