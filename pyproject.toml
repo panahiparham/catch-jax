@@ -28,6 +28,7 @@ benchmark = ["optax", "matplotlib", "numpy", "pillow"]
 [tool.ruff]
 line-length = 88
 target-version = "py313"
+extend-exclude = ["tests/_reference_*.py"]
 
 [tool.pyrefly]
 project-includes = ["src"]
